@@ -2,6 +2,8 @@ package surfstore
 
 import (
 	"bufio"
+	"net"
+
 	//	"google.golang.org/grpc"
 	"io"
 	"log"
@@ -11,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"google.golang.org/grpc"
 )
 
 func LoadRaftConfigFile(filename string) (ipList []string) {
@@ -23,6 +27,7 @@ func LoadRaftConfigFile(filename string) (ipList []string) {
 	configReader := bufio.NewReader(configFD)
 	serverCount := 0
 	SURF_CLIENT := "NEED MODIFY"
+
 	for index := 0; ; index++ {
 		lineContent, _, e := configReader.ReadLine()
 		if e != nil && e != io.EOF {
@@ -30,7 +35,7 @@ func LoadRaftConfigFile(filename string) (ipList []string) {
 		}
 
 		if e == io.EOF {
-			return
+			break
 		}
 
 		lineString := string(lineContent)
@@ -43,7 +48,7 @@ func LoadRaftConfigFile(filename string) (ipList []string) {
 		}
 	}
 
-	return
+	return ipList
 }
 
 func NewRaftServer(id int64, ips []string, blockStoreAddr string) (*RaftSurfstore, error) {
@@ -53,6 +58,13 @@ func NewRaftServer(id int64, ips []string, blockStoreAddr string) (*RaftSurfstor
 
 	server := RaftSurfstore{
 		// TODO initialize any fields you add here
+		ip:       ips[id],
+		ipList:   ips,
+		serverId: id,
+
+		commitIndex: -1,
+		lastApplied: -1,
+
 		isLeader:       false,
 		term:           0,
 		metaStore:      NewMetaStore(blockStoreAddr),
@@ -67,6 +79,12 @@ func NewRaftServer(id int64, ips []string, blockStoreAddr string) (*RaftSurfstor
 
 // TODO Start up the Raft server and any services here
 func ServeRaftServer(server *RaftSurfstore) error {
-	panic("todo")
-	return nil
+	// panic("todo")
+	s := grpc.NewServer()
+	RegisterRaftSurfstoreServer(s, server)
+	l, err := net.Listen("tcp", server.ip)
+	if err != nil {
+		return err
+	}
+	return s.Serve(l)
 }
