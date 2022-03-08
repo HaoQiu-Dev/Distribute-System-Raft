@@ -30,6 +30,6 @@ func startServer(id int64, addrs []string, blockStoreAddr string) error {
 	if err != nil {
 		log.Fatal("Error creating servers")
 	}
-
+	log.Print("server created!!!")
 	return surfstore.ServeRaftServer(raftServer)
 }
