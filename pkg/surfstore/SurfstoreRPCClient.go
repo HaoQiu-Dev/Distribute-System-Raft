@@ -2,6 +2,8 @@ package surfstore
 
 import (
 	context "context"
+	"fmt"
+	"log"
 	"time"
 
 	grpc "google.golang.org/grpc"
@@ -91,12 +93,51 @@ func (surfClient *RPCClient) HasBlocks(blockHashesIn []string, blockStoreAddr st
 	return conn.Close()
 }
 
+func (surfClient *RPCClient) checkLeader() (*string, error) {
+
+	var leader *string
+	for _, ip := range surfClient.MetaStoreAddrs {
+
+		conn, err := grpc.Dial(ip, grpc.WithInsecure())
+		if err != nil {
+			continue
+		}
+		c := NewRaftSurfstoreClient(conn)
+
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		internalState, err := c.GetInternalState(ctx, &emptypb.Empty{}) //******* useful
+
+		if err != nil {
+			conn.Close()
+			continue
+		}
+		if internalState.IsLeader {
+			leader = &ip
+			conn.Close()
+			return leader, nil
+		}
+		// close the connection
+		conn.Close()
+	}
+	return leader, fmt.Errorf("no leader")
+}
+
 //
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
 	// panic("todo")
 	// connect to the server
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
-	conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
+	ip, err := surfClient.checkLeader()
+	if err != nil {
+		return err
+	}
+	leader := *ip
+	//
+	log.Println("call success")
+	conn, err := grpc.Dial(leader, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
@@ -123,7 +164,15 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	// panic("todo")
 	// connect to the server
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
-	conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
+	ip, err := surfClient.checkLeader()
+	if err != nil {
+		return err
+	}
+	leader := *ip
+	log.Println("call success")
+	// conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
+
+	conn, err := grpc.Dial(leader, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
@@ -149,8 +198,14 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 	// panic("todo")
 	// connect to the server
+	ip, err := surfClient.checkLeader()
+	if err != nil {
+		return err
+	}
+	leader := *ip
+	log.Println("call success")
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
-	conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
+	conn, err := grpc.Dial(leader, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}

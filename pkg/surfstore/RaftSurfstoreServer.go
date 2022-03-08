@@ -46,17 +46,28 @@ type RaftSurfstore struct {
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	//panic("todo")
 	// return nil, nil
+	if !s.isLeader {
+		return nil, fmt.Errorf("not leader")
+	}
+
 	return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
 }
 
 func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Empty) (*BlockStoreAddr, error) {
 	// panic("todo")
 	// return nil, nil
+	if !s.isLeader {
+		return nil, fmt.Errorf("not leader")
+	}
 	return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 }
 
 func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) (*Version, error) {
 	// panic("todo")
+
+	if !s.isLeader {
+		return nil, fmt.Errorf("not leader")
+	}
 
 	op := UpdateOperation{
 		Term:         s.term,
