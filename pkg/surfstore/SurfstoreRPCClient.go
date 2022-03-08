@@ -109,16 +109,24 @@ func (surfClient *RPCClient) checkLeader() (*string, error) {
 		defer cancel()
 
 		internalState, err := c.GetInternalState(ctx, &emptypb.Empty{}) //******* useful
-
 		if err != nil {
 			conn.Close()
 			continue
 		}
+
+		isCrash, err := c.IsCrashed(ctx, &emptypb.Empty{})
+		if err != nil || isCrash.IsCrashed {
+			conn.Close()
+			continue
+		}
+
+		//true leader
 		if internalState.IsLeader {
 			leader = &ip
 			conn.Close()
 			return leader, nil
 		}
+
 		// close the connection
 		conn.Close()
 	}
@@ -136,18 +144,19 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 	}
 	leader := *ip
 	//
-	log.Println("call success")
+
 	conn, err := grpc.Dial(leader, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
+
 	// c := NewMetaStoreClient(conn) //return a metaStoreClient
 	c := NewRaftSurfstoreClient(conn)
 
 	// perform the call
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-
+	log.Println("call success! informap")
 	fileInfoMap, err := c.GetFileInfoMap(ctx, &emptypb.Empty{}) //******* useful
 	if err != nil {
 		conn.Close()
@@ -170,6 +179,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	}
 	leader := *ip
 	log.Println("call success")
+	fmt.Println(leader)
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
 
 	conn, err := grpc.Dial(leader, grpc.WithInsecure())
@@ -183,7 +193,10 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	log.Println("ready to update")
 	lsVersion, err := c.UpdateFile(ctx, fileMetaData) //******* useful
+	log.Println("update out")
+	log.Println(err)
 	if err != nil {
 		conn.Close()
 		return err
