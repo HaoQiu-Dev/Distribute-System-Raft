@@ -156,8 +156,9 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		addr := s.ipList[serverIdx]
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
-			commitChan <- output
-			return
+			// commitChan <- output
+			// return
+			continue
 		}
 		client := NewRaftSurfstoreClient(conn)
 
@@ -167,11 +168,10 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		defer cancel()
 
 		//TODO handle crashed / non success cases ...?should return what?
-		crashState, _ := client.IsCrashed(ctx, &emptypb.Empty{})
-		if crashState.IsCrashed {
-			commitChan <- output
-			return
-		}
+		// crashState, _ := client.IsCrashed(ctx, &emptypb.Empty{})
+		// if crashState.IsCrashed {
+		// 	continue
+		// }
 
 		//modify input
 		var input *AppendEntryInput
