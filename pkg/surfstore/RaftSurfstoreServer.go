@@ -269,14 +269,16 @@ func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *Appen
 
 func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error) {
 	// panic("todo")
-	if s.isCrashed {
-		return nil, nil
-	}
 
 	output := &AppendEntryOutput{
 		Success:      false,
 		MatchedIndex: -1,
 	}
+
+	if s.isCrashed {
+		return output, ERR_SERVER_CRASHED
+	}
+
 	if len(input.Entries) == 0 {
 		return output, nil
 	}
@@ -351,6 +353,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	// panic("todo")
 
 	// check leader
+	if s.isCrashed {
+		return &Success{Flag: false}, ERR_SERVER_CRASHED
+	}
 	if !s.isLeader {
 		return &Success{Flag: false}, ERR_NOT_LEADER
 	}
