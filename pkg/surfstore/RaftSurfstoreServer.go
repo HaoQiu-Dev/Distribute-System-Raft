@@ -280,6 +280,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		MatchedIndex: -1,
 	}
 
+	if input.Term > s.term {
+		s.term = input.Term
+	}
+
 	if s.isCrashed {
 		return output, ERR_SERVER_CRASHED
 	}
@@ -294,9 +298,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		return output, nil
 	}
 
-	if input.Term > s.term {
-		s.term = input.Term
-	}
 	if len(input.Entries) == 0 {
 		return output, nil
 	}
