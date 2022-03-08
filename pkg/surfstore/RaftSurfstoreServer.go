@@ -55,6 +55,8 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 		return nil, ERR_NOT_LEADER
 	}
 
+	// chechkCrash
+
 	return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
 }
 
@@ -77,7 +79,6 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
-	log.Println("find leader")
 
 	if s.isCrashed {
 		return nil, ERR_SERVER_CRASHED
@@ -144,6 +145,8 @@ func (s *RaftSurfstore) attemptCommit() {
 // append/replicate log (Only leader s -> one follower )
 func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *AppendEntryOutput) {
 
+	// if s.isCrashed {}
+
 	output := &AppendEntryOutput{
 		Success: false,
 	}
@@ -195,7 +198,10 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 			}
 		}
 
-		output, _ = client.AppendEntries(ctx, input)
+		output, err = client.AppendEntries(ctx, input)
+		for err != nil {
+			continue
+		}
 		// for {
 		// 	output, _ = client.AppendEntries(ctx, input)
 
@@ -347,6 +353,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	}
 	s.term++
 	s.isLeader = true
+
 	return &Success{Flag: true}, nil
 }
 
@@ -355,7 +362,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
-
+	log.Panicln("heartbeat!!!")
 	// check leader
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
@@ -372,7 +379,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		//Dial
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
-			return nil, nil
+			continue
 		}
 		client := NewRaftSurfstoreClient(conn)
 
@@ -418,10 +425,12 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
+
 		output, _ := client.AppendEntries(ctx, input)
 		//retrun nil means The server is crashed
 		if output == nil {
-			return &Success{Flag: false}, ERR_SERVER_CRASHED
+			// return &Success{Flag: false}, ERR_SERVER_CRASHED
+			continue
 		}
 		if output != nil {
 			//server is alive
@@ -431,6 +440,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			continue
 		}
 	}
+
 	return &Success{Flag: true}, nil
 }
 
