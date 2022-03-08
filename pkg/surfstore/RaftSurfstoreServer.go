@@ -44,6 +44,53 @@ type RaftSurfstore struct {
 	UnimplementedRaftSurfstoreServer
 }
 
+func (s *RaftSurfstore) checkAllCrash() bool {
+	crashChan := make(chan bool)
+	for idx, _ := range s.ipList {
+		//skip severself
+		if int64(idx) == s.serverId {
+			continue
+		}
+		go s.chechkFollowerCrash(int64(idx), crashChan)
+	}
+
+	crashRecoverCount := 1
+	for {
+
+		<-crashChan
+		crashRecoverCount++
+
+		if crashRecoverCount > len(s.ipList)/2 {
+			return true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
+		}
+		//reached all nodes already
+		if crashRecoverCount == len(s.ipList) {
+			return false
+		}
+	}
+}
+
+func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan chan bool) {
+
+	for {
+		addr := s.ipList[idx]
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			continue
+		}
+		client := NewRaftSurfstoreClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		crashInfor, _ := client.IsCrashed(ctx, &emptypb.Empty{})
+		if !crashInfor.IsCrashed {
+			crashChan <- true
+			return
+		}
+	}
+
+}
+
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	//panic("todo")
 	// return nil, nil
@@ -54,9 +101,12 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 		return nil, ERR_NOT_LEADER
 	}
 
-	// chechkCrash
-
+	support := s.checkAllCrash()
+	if support {
+		return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
+	}
 	return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
+
 }
 
 func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Empty) (*BlockStoreAddr, error) {
@@ -67,6 +117,11 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 	}
 	if s.isCrashed {
 		return nil, ERR_NOT_LEADER
+	}
+
+	support := s.checkAllCrash()
+	if support {
+		return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 	}
 	return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 }
