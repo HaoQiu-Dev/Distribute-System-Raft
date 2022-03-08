@@ -51,6 +51,9 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
+	if !s.isCrashed {
+		return nil, ERR_SERVER_CRASHED
+	}
 
 	return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
 }
@@ -60,6 +63,9 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 	// return nil, nil
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
+	}
+	if !s.isCrashed {
+		return nil, ERR_SERVER_CRASHED
 	}
 	return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 }
@@ -329,6 +335,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 // This should set the leader status and any related variables as if the node has just won an election
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// panic("todo")
+
+	if s.isCrashed {
+		return &Success{Flag: false}, ERR_SERVER_CRASHED
+	}
 	s.term++
 	s.isLeader = true
 	return &Success{Flag: true}, nil
@@ -371,6 +381,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		defer cancel()
 		output, _ := client.AppendEntries(ctx, input)
 		//retrun nil means The server is crashed
+		if output == nil {
+			return &Success{Flag: false}, ERR_SERVER_CRASHED
+		}
 		if output != nil {
 			//server is alive
 			continue
