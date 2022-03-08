@@ -51,8 +51,8 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
-	if !s.isCrashed {
-		return nil, ERR_SERVER_CRASHED
+	if s.isCrashed {
+		return nil, ERR_NOT_LEADER
 	}
 
 	return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
@@ -64,8 +64,8 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
-	if !s.isCrashed {
-		return nil, ERR_SERVER_CRASHED
+	if s.isCrashed {
+		return nil, ERR_NOT_LEADER
 	}
 	return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 }
