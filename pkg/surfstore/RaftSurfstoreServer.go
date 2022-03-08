@@ -275,21 +275,25 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		MatchedIndex: -1,
 	}
 
+	if input.Term > s.term {
+		s.term = input.Term
+	}
+
 	if s.isCrashed {
 		return output, ERR_SERVER_CRASHED
 	}
 
-	if len(input.Entries) == 0 {
-		return output, nil
-	}
-
-	if input.Term > s.term {
-		s.term = input.Term
+	if s.isLeader {
+		s.isLeader = false
 	}
 
 	//1. Reply false if term < currentTerm (§5.1)
 	if input.Term < s.term {
 		output.Term = input.Term
+		return output, nil
+	}
+
+	if len(input.Entries) == 0 {
 		return output, nil
 	}
 
@@ -373,13 +377,43 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		client := NewRaftSurfstoreClient(conn)
 
 		//TODO create correct AppendEntryIput from s.nextIdx, etc
-		input := &AppendEntryInput{
-			Term:         s.term,
-			PrevLogTerm:  -1,
-			PrevLogIndex: -1,
-			//TODO figure out which entries to send
-			Entries:      make([]*UpdateOperation, 0),
-			LeaderCommit: s.commitIndex,
+
+		var input *AppendEntryInput
+
+		targetIdx := s.commitIndex + 1
+
+		if targetIdx >= int64(len(s.log)) {
+			targetIdx--
+		}
+
+		if targetIdx == 0 {
+			if len(s.log) == 0 {
+				input = &AppendEntryInput{
+					Term:         s.term,
+					PrevLogIndex: -1,
+					PrevLogTerm:  -1,
+					Entries:      make([]*UpdateOperation, 0), //index to position
+					LeaderCommit: s.commitIndex,
+				}
+			} else if len(s.log) > 0 {
+				input = &AppendEntryInput{
+					Term:         s.term,
+					PrevLogIndex: -1,
+					PrevLogTerm:  -1,
+					Entries:      s.log[:targetIdx+1], //index to position
+					LeaderCommit: s.commitIndex,
+				}
+			}
+
+		} else if targetIdx > 0 {
+			input = &AppendEntryInput{
+				Term:         s.term,
+				PrevLogTerm:  targetIdx - 1,
+				PrevLogIndex: s.log[targetIdx-1].Term,
+				//TODO figure out which entries to send
+				Entries:      s.log[:targetIdx+1],
+				LeaderCommit: s.commitIndex,
+			}
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
