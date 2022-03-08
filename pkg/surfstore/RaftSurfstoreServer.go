@@ -3,7 +3,6 @@ package surfstore
 import (
 	context "context"
 	"fmt"
-	"log"
 	"math"
 	reflect "reflect"
 	"sync"
@@ -362,7 +361,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
-	log.Panicln("heartbeat!!!")
+
 	// check leader
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
