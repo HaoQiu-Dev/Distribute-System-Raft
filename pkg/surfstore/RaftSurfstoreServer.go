@@ -291,7 +291,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		i := input.PrevLogIndex + 1
 		if int64(len(s.log)) == i {
 			if s.log[i-1].Term == input.Entries[i-1].Term {
-				if !reflect.DeepEqual(s.log[i].FileMetaData, input.Entries[i].FileMetaData) {
+				if !reflect.DeepEqual(s.log[i-1].FileMetaData, input.Entries[i-1].FileMetaData) {
 					return output, nil
 				}
 			}
