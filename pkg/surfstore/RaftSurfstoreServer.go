@@ -280,10 +280,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		MatchedIndex: -1,
 	}
 
-	if input.Term > s.term {
-		s.term = input.Term
-	}
-
 	if s.isCrashed {
 		return output, ERR_SERVER_CRASHED
 	}
@@ -298,6 +294,9 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		return output, nil
 	}
 
+	if input.Term > s.term {
+		s.term = input.Term
+	}
 	if len(input.Entries) == 0 {
 		return output, nil
 	}
@@ -376,10 +375,11 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			continue
 		}
 		//Dial
-		conn, err := grpc.Dial(addr, grpc.WithInsecure())
-		if err != nil {
-			continue
-		}
+		conn, _ := grpc.Dial(addr, grpc.WithInsecure())
+		// conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		// if err != nil {
+		// 	continue
+		// }
 		client := NewRaftSurfstoreClient(conn)
 
 		//TODO create correct AppendEntryIput from s.nextIdx, etc
