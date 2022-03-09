@@ -142,7 +142,6 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
-
 	if s.isCrashed {
 		return nil, ERR_SERVER_CRASHED
 	}
@@ -183,7 +182,7 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 		if int64(idx) == s.serverId {
 			continue
 		}
-		go s.replicEntry(int64(idx), targetIdx, commitchan) //5ci
+		go s.replicEntry(int64(idx), targetIdx, commitchan) // 1-1
 	}
 
 	logReplicaCount := 1
@@ -225,13 +224,27 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	// if s.isCrashed {}
 	fmt.Println("try to replicate")
 	output := &AppendEntryOutput{
-		Success: false,
+		ServerId:     s.serverId,
+		Success:      false,
+		Term:         s.term,
+		MatchedIndex: -1,
+	}
+
+	if s.isCrashed {
+		commitChan <- output
+		return
+	}
+
+	if !s.isLeader {
+		commitChan <- output
+		return
 	}
 
 	//go routine continueously try to update  //whole log?
 	for {
-		fmt.Println("try to replicate,loop")
+		// fmt.Println("try to replicate,loop")
 		if s.isCrashed {
+			fmt.Println("leader crashd")
 			commitChan <- output
 			return
 		}
@@ -242,7 +255,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		addr := s.ipList[serverIdx]
-		fmt.Println("Dial to follower, need replicentry")
+		// fmt.Println("Dial to follower, need replicentry")
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			// commitChan <- output
@@ -257,10 +270,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		defer cancel()
 
 		//TODO handle crashed / non success cases ...?should return what?
-		// crashState, _ := client.IsCrashed(ctx, &emptypb.Empty{})
-		// if crashState.IsCrashed {
-		// 	continue
-		// }
 
 		//modify input
 		var input *AppendEntryInput
@@ -286,19 +295,20 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 			}
 		}
 
-		output, err = client.AppendEntries(ctx, input)
-		fmt.Println("try to append entry!")
+		output, err := client.AppendEntries(ctx, input)
+		// fmt.Println("try to append entry!")
 
 		if err == nil {
 			if output.Success {
+				fmt.Println("try to append entry! Success!")
 				commitChan <- output
 				return
 			}
 		}
 
-		for err != nil {
-			continue
-		}
+		// for err != nil {
+		// 	continue
+		// }
 
 	}
 }
@@ -313,6 +323,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 //of last new entry)
 
 func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *AppendEntryOutput) {
+	fmt.Println("match log")
 	i := input.PrevLogIndex
 	for i >= 0 {
 		if s.log[i].Term == input.Entries[i].Term && reflect.DeepEqual(s.log[i].FileMetaData, input.Entries[i].FileMetaData) {
@@ -354,7 +365,9 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// panic("todo")
 
 	output := &AppendEntryOutput{
+		ServerId:     s.serverId,
 		Success:      false,
+		Term:         s.term,
 		MatchedIndex: -1,
 	}
 	// fmt.Println("In appendentries!")
@@ -371,10 +384,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		fmt.Println("This sever crashed,now return")
 		return output, ERR_SERVER_CRASHED
 	}
-
-	// if s.isLeader {
-	// 	s.isLeader = false
-	// }
 
 	//1. Reply false if term < currentTerm (§5.1)
 	if input.Term < s.term {
