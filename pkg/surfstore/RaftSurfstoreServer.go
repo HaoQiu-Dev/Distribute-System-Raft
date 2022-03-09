@@ -230,7 +230,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 	//go routine continueously try to update  //whole log?
 	for {
-
+		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
 			commitChan <- output
 			return
@@ -381,6 +381,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// }
 
 	if s.isCrashed {
+		fmt.Println("This sever crashed,now return")
 		return output, ERR_SERVER_CRASHED
 	}
 
@@ -517,6 +518,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		if targetIdx == 0 {
 			fmt.Println("my term give 1!")
 			if len(s.log) == 0 {
+				fmt.Println("my term give 1.1!")
 				input = &AppendEntryInput{
 					Term:         s.term,
 					PrevLogIndex: -1,
@@ -524,7 +526,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 					Entries:      make([]*UpdateOperation, 0), //index to position
 					LeaderCommit: s.commitIndex,
 				}
+
 			} else if len(s.log) > 0 {
+				fmt.Println("my term give 1.2!")
 				input = &AppendEntryInput{
 					Term:         s.term,
 					PrevLogIndex: -1,
@@ -533,6 +537,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 					LeaderCommit: s.commitIndex,
 				}
 			}
+
 		} else if targetIdx > 0 {
 			fmt.Println("my term give 2!")
 			input = &AppendEntryInput{
