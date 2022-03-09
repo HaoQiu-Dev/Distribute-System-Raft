@@ -488,6 +488,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		}
 
 		if targetIdx == 0 {
+			fmt.Println("my term give 1!")
 			if len(s.log) == 0 {
 				input = &AppendEntryInput{
 					Term:         s.term,
@@ -505,8 +506,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 					LeaderCommit: s.commitIndex,
 				}
 			}
-
 		} else if targetIdx > 0 {
+			fmt.Println("my term give 2!")
 			input = &AppendEntryInput{
 				Term:         s.term,
 				PrevLogTerm:  s.log[targetIdx-1].Term,
@@ -516,6 +517,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 				LeaderCommit: s.commitIndex,
 			}
 		} else if targetIdx < 0 {
+			fmt.Println("my term give 3!")
 			input = &AppendEntryInput{
 				Term:         s.term,
 				PrevLogIndex: -1,
