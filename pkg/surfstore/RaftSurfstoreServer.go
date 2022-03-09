@@ -576,8 +576,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		}
 	}
 	fmt.Println("send beats over")
-	// return &Success{Flag: true}, nil
-	return nil, nil
+	return &Success{Flag: true}, nil
+	// return nil, nil
 }
 
 func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
