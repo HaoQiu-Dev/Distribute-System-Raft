@@ -308,14 +308,13 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		fmt.Println(err)
 		// fmt.Println(output.Success)
 
-		for err != nil {
-			continue
+		if err == nil {
+			if output.Success {
+				commitChan <- output
+				return
+			}
 		}
 
-		if output.Success {
-			commitChan <- output
-			return
-		}
 		fmt.Println("continue for loop")
 		// for {
 		// 	output, _ = client.AppendEntries(ctx, input)
