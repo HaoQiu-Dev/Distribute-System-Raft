@@ -249,7 +249,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	fmt.Println("Be in infinity loop!")
 	//go routine continueously try to update  //whole log?
 	for {
-		// fmt.Println("try to replicate,loop")
+		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
 			// fmt.Println("leader crashd")
 			commitChan <- output
@@ -310,13 +310,13 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				fmt.Println("try to append entry! Success!")
 				commitChan <- output
 				return
+			} else {
+				fmt.Println("server crash retrun attemt commit!")
+				commitChan <- output
+				return
 			}
-		} else {
-			fmt.Println("server crash retrun attemt commit!")
-			commitChan <- output
-			return
 		}
-
+		fmt.Println("Append fails continue!")
 		// for err != nil {
 		// 	continue
 		// }
