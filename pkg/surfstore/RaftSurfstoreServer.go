@@ -148,12 +148,15 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 	s.log = append(s.log, &op)
 
-	committed := make(chan bool)
-	s.pendingCommits = append(s.pendingCommits, committed)
+	// committed := make(chan bool)
+	// s.pendingCommits = append(s.pendingCommits, committed)
 
-	go s.attemptCommit() //attempt relicate to other severs
+	ActivateChan := make(chan bool)
 
-	success := <-committed //commite
+	go s.attemptCommit(&ActivateChan) //attempt relicate to other severs only once
+
+	// success := <-committed //commite
+	success := <-ActivateChan
 	if success {
 		return s.metaStore.UpdateFile(ctx, filemeta)
 	} else {
@@ -163,7 +166,8 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 }
 
 //attempt relicate to other severs //s is the leader s.attempt -> replicate
-func (s *RaftSurfstore) attemptCommit() {
+func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
+	ActivateChan := *ACTchan
 	targetIdx := s.commitIndex + 1
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
 	for idx, _ := range s.ipList {
@@ -171,7 +175,7 @@ func (s *RaftSurfstore) attemptCommit() {
 		if int64(idx) == s.serverId {
 			continue
 		}
-		go s.replicEntry(int64(idx), targetIdx, commitchan)
+		go s.replicEntry(int64(idx), targetIdx, commitchan) //5ci
 	}
 
 	logReplicaCount := 1
@@ -179,6 +183,12 @@ func (s *RaftSurfstore) attemptCommit() {
 	currentTerm := -1
 
 	for {
+		if s.isCrashed {
+			return
+		}
+		if !s.isLeader {
+			return
+		}
 		//TODO handle crashed nodes NEED // don't forever loop (each node once)
 		commit := <-commitchan // go routine and get feedback
 		currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
@@ -187,13 +197,15 @@ func (s *RaftSurfstore) attemptCommit() {
 			logReplicaCount++
 		}
 		if logReplicaCount > len(s.ipList)/2 && int64(currentTerm) <= s.log[targetIdx].Term {
-			s.pendingCommits[targetIdx] <- true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
+			// s.pendingCommits[targetIdx] <- true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
 			s.commitIndex = targetIdx
+			ActivateChan <- true
 			break
 		}
 		//reached all nodes already
 		if logReplicaCount == len(s.ipList) {
-			s.pendingCommits[targetIdx] <- false
+			// s.pendingCommits[targetIdx] <- false
+			ActivateChan <- false
 			break
 		}
 	}
@@ -212,6 +224,11 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	for {
 
 		if s.isCrashed {
+			commitChan <- output
+			return
+		}
+
+		if !s.isLeader {
 			commitChan <- output
 			return
 		}
@@ -380,6 +397,14 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
 	//3. If an existing entry conflicts with a new one (same index but different
 	//terms), delete the existing entry and all that follow it (§5.3)
+	if input.Term > s.term {
+		s.term = input.Term
+	}
+
+	if s.isCrashed {
+		return output, ERR_SERVER_CRASHED
+	}
+
 	if len(s.log) > len(input.Entries) {
 		s.log = s.log[:len(input.Entries)]
 	}
