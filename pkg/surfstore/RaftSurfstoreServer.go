@@ -302,12 +302,32 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				LeaderCommit: s.commitIndex,
 			}
 		}
+
+		output, err := client.AppendEntries(ctx, input)
+
+		if !s.isLeader {
+			output := &AppendEntryOutput{
+				ServerId:     s.serverId,
+				Success:      false,
+				Term:         s.term,
+				MatchedIndex: -1,
+			}
+			commitChan <- output
+			return
+		}
+
 		if s.isCrashed {
+			output := &AppendEntryOutput{
+				ServerId:     s.serverId,
+				Success:      false,
+				Term:         s.term,
+				MatchedIndex: -1,
+			}
 			fmt.Println("leader crashd")
 			commitChan <- output
 			return
 		}
-		output, err := client.AppendEntries(ctx, input)
+
 		// fmt.Println("try to append entry!")
 		fmt.Println(err)
 		if err == nil {
