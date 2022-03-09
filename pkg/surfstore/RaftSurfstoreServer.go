@@ -455,6 +455,10 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	fmt.Println(s.term)
 	fmt.Println("leader term ++")
 	s.isLeader = true
+	fmt.Println("new leaderid")
+	fmt.Println(s.serverId)
+	fmt.Println("new leader state")
+	fmt.Println(s.isLeader)
 	// s.isLeaderMutex.Lock()
 	// log.Printf("leader changed to %d", s.serverId)
 	return &Success{Flag: true}, nil
