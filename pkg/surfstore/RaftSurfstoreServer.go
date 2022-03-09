@@ -465,6 +465,10 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
 	fmt.Println("send heart beat")
+	fmt.Println("The leader term")
+	fmt.Println(s.term)
+	fmt.Println("******")
+
 	// check leader
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
