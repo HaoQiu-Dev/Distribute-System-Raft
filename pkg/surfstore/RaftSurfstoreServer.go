@@ -226,8 +226,12 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 	// if s.isCrashed {}
 	fmt.Println("try to replicate")
+
 	output := &AppendEntryOutput{
-		Success: false,
+		ServerId:     s.serverId,
+		Success:      false,
+		Term:         s.term,
+		MatchedIndex: -1,
 	}
 
 	if s.isCrashed {
@@ -384,7 +388,11 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// panic("todo")
 
 	output := &AppendEntryOutput{
+		// Success:      false,
+		// MatchedIndex: -1,
+		ServerId:     s.serverId,
 		Success:      false,
+		Term:         s.term,
 		MatchedIndex: -1,
 	}
 	// fmt.Println("In appendentries!")
