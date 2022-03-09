@@ -133,7 +133,7 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 
 		conn, err := grpc.Dial(ip, grpc.WithInsecure())
 		if err != nil {
-			return err
+			continue
 		}
 		// c := NewMetaStoreClient(conn) //return a metaStoreClient
 		c := NewRaftSurfstoreClient(conn)
@@ -146,7 +146,7 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 
 		if err != nil {
 			conn.Close()
-			return err
+			continue
 		}
 
 		*serverFileInfoMap = fileInfoMap.FileInfoMap //give value
@@ -167,7 +167,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	for _, ip := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(ip, grpc.WithInsecure())
 		if err != nil {
-			return err
+			continue
 		}
 		// c := NewMetaStoreClient(conn) //return a metaStoreClient
 		c := NewRaftSurfstoreClient(conn)
@@ -180,7 +180,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 
 		if err != nil {
 			conn.Close()
-			return err
+			continue
 		}
 
 		*latestVersion = lsVersion.Version //give value
@@ -202,7 +202,7 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 	for _, ip := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(ip, grpc.WithInsecure())
 		if err != nil {
-			return err
+			continue
 		}
 		// c := NewMetaStoreClient(conn) //return a metaStoreClient
 		c := NewRaftSurfstoreClient(conn)
@@ -214,7 +214,7 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 		addr, err := c.GetBlockStoreAddr(ctx, &emptypb.Empty{}) //******* useful
 		if err != nil {
 			conn.Close()
-			return err
+			continue
 		}
 		*blockStoreAddr = addr.Addr //give value
 
