@@ -179,7 +179,7 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 		if int64(idx) == s.serverId {
 			continue
 		}
-		go s.replicEntry(int64(idx), targetIdx, commitchan) //1 -> 4
+		go s.replicEntry(int64(idx), targetIdx, commitchan) //5ci
 	}
 
 	logReplicaCount := 1
@@ -378,7 +378,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
 	//1. Reply false if term < currentTerm (§5.1)
 	if input.Term < s.term {
-		output.Term = input.Term
+		// output.Term = input.Term
 		return output, nil
 	}
 
@@ -478,10 +478,16 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		client := NewRaftSurfstoreClient(conn)
 
 		//TODO create correct AppendEntryIput from s.nextIdx, etc
+
 		var input *AppendEntryInput
+
 		targetIdx := s.commitIndex + 1
 
-		if targetIdx == 0 {
+		// if targetIdx >= int64(len(s.log)) {
+		// 	targetIdx--
+		// }
+
+		if targetIdx == 0 || targetIdx >= int64(len(s.log)) {
 			if len(s.log) == 0 {
 				input = &AppendEntryInput{
 					Term:         s.term,
@@ -511,17 +517,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			}
 		}
 
-		if targetIdx >= int64(len(s.log)) {
-			input = &AppendEntryInput{
-				Term:         s.term,
-				PrevLogIndex: -1,
-				PrevLogTerm:  -1,
-				Entries:      make([]*UpdateOperation, 0), //index to position
-				LeaderCommit: s.commitIndex,
-			}
-		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
+
 		output, _ := client.AppendEntries(ctx, input)
 		//retrun nil means The server is crashed
 		if output == nil {
