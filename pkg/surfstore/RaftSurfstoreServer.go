@@ -212,6 +212,7 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 			s.commitIndex = targetIdx
 			ActivateChan <- true
 			// break
+			fmt.Println("finish attempt commit!")
 			return
 		}
 		//reached all nodes already
@@ -310,6 +311,9 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				commitChan <- output
 				return
 			}
+		} else {
+			fmt.Println("server crash retrun attemt commit!")
+			return
 		}
 
 		// for err != nil {
