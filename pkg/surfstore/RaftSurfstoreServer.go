@@ -297,15 +297,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		for err != nil {
-			if s.isCrashed {
-				commitChan <- output
-				return
-			}
-
-			if !s.isLeader {
-				commitChan <- output
-				return
-			}
 			continue
 		}
 
@@ -572,7 +563,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			continue
 		}
 	}
-
+	fmt.Println("send beats over")
 	return &Success{Flag: true}, nil
 }
 
