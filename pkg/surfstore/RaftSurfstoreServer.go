@@ -103,6 +103,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 	}
 
 	support := s.checkAllCrash()
+
 	if support {
 		return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
 	}
@@ -121,6 +122,7 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 	}
 
 	support := s.checkAllCrash()
+
 	if support {
 		return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 	}
@@ -208,6 +210,11 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 	//go routine continueously try to update  //whole log?
 	for {
+
+		if s.isCrashed {
+			commitChan <- output
+			return
+		}
 
 		addr := s.ipList[serverIdx]
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
