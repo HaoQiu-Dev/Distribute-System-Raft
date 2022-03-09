@@ -249,6 +249,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	fmt.Println("Be in infinity loop!")
 	//go routine continueously try to update  //whole log?
 	for {
+
 		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
 			// fmt.Println("leader crashd")
@@ -301,10 +302,14 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				LeaderCommit: s.commitIndex,
 			}
 		}
-
+		if s.isCrashed {
+			fmt.Println("leader crashd")
+			commitChan <- output
+			return
+		}
 		output, err := client.AppendEntries(ctx, input)
 		// fmt.Println("try to append entry!")
-
+		fmt.Println(err)
 		if err == nil {
 			if output.Success {
 				fmt.Println("try to append entry! Success!")
@@ -565,9 +570,18 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			}
 			fmt.Println(input.Term)
 		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		fmt.Println("Go to Append entry")
+
+		if s.isCrashed {
+			return &Success{Flag: false}, ERR_SERVER_CRASHED
+		}
+		if !s.isLeader {
+			return &Success{Flag: false}, ERR_NOT_LEADER
+		}
+
 		output, _ := client.AppendEntries(ctx, input)
 		//retrun nil means The server is crashed
 		if output == nil {
