@@ -482,6 +482,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// panic("todo")
 	// s.isLeaderMutex.Lock()
+	s.isLeaderMutex.Lock()
 	fmt.Println("Begin set leader")
 	// s.isLeaderMutex.Unlock()
 	// defer
@@ -500,6 +501,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	// fmt.Println(s.isLeader)
 	// s.isLeaderMutex.Lock()
 	// log.Printf("leader changed to %d", s.serverId)
+	s.isLeaderMutex.Unlock()
 	return &Success{Flag: true}, nil
 }
 
@@ -515,7 +517,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	// fmt.Println(s.serverId)
 	// fmt.Println(s.isLeader)
 	// fmt.Println("******")
-	s.isLeaderMutex.Lock()
+	// s.isLeaderMutex.Lock()
 	// check leader
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
@@ -618,7 +620,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		}
 	}
 	fmt.Println("send beats over")
-	defer s.isLeaderMutex.Unlock()
+	// defer s.isLeaderMutex.Unlock()
 	return &Success{Flag: true}, nil
 	// return nil, nil
 }
