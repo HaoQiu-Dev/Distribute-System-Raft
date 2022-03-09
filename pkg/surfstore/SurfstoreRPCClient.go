@@ -3,7 +3,6 @@ package surfstore
 import (
 	context "context"
 	"fmt"
-	"log"
 	"time"
 
 	grpc "google.golang.org/grpc"
@@ -93,151 +92,137 @@ func (surfClient *RPCClient) HasBlocks(blockHashesIn []string, blockStoreAddr st
 	return conn.Close()
 }
 
-func (surfClient *RPCClient) checkLeader() (*string, error) {
+// func (surfClient *RPCClient)checkLeader() (string,error){
 
-	var leader *string
-	for _, ip := range surfClient.MetaStoreAddrs {
+// 	var leader string
+// 	for _,ip := range surfClient.MetaStoreAddrs{
 
-		conn, err := grpc.Dial(ip, grpc.WithInsecure())
-		if err != nil {
-			continue
-		}
-		c := NewRaftSurfstoreClient(conn)
+// 		conn, err := grpc.Dial(ip, grpc.WithInsecure())
+// 		if err != nil {
+// 			return leader,nil
+// 		}
+// 		c := NewRaftSurfstoreClient(conn)
+// 		// perform the call
+// 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+// 		defer cancel()
 
-		// perform the call
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
+// 		internalState, err := c.GetInternalState(ctx, &emptypb.Empty{}) //******* useful
 
-		internalState, err := c.GetInternalState(ctx, &emptypb.Empty{}) //******* useful
-		if err != nil {
-			conn.Close()
-			continue
-		}
+// 		if err != nil {
+// 			conn.Close()
+// 			return leader,err
+// 		}
+// 		if internalState.IsLeader == true{
+// 			leader = ip
+// 			return leader,nil
+// 		}
 
-		isCrash, err := c.IsCrashed(ctx, &emptypb.Empty{})
-		if err != nil || isCrash.IsCrashed {
-			conn.Close()
-			continue
-		}
+// 		// close the connection
+// 	}
+// 	return leader,fmt.Errorf("No leader!")
 
-		//true leader
-		if internalState.IsLeader {
-			leader = &ip
-			conn.Close()
-			return leader, nil
-		}
-
-		// close the connection
-		conn.Close()
-	}
-	return leader, fmt.Errorf("no leader")
-}
+// }
 
 //
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
 	// panic("todo")
 	// connect to the server
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
-	ip, err := surfClient.checkLeader()
-	if err != nil {
-		return err
-	}
-	leader := *ip
-	//
+	fmt.Println("client call getfileinformap")
+	for _, ip := range surfClient.MetaStoreAddrs {
 
-	conn, err := grpc.Dial(leader, grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
+		conn, err := grpc.Dial(ip, grpc.WithInsecure())
+		if err != nil {
+			return err
+		}
+		// c := NewMetaStoreClient(conn) //return a metaStoreClient
+		c := NewRaftSurfstoreClient(conn)
 
-	// c := NewMetaStoreClient(conn) //return a metaStoreClient
-	c := NewRaftSurfstoreClient(conn)
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 
-	// perform the call
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	log.Println("call success! informap")
-	fileInfoMap, err := c.GetFileInfoMap(ctx, &emptypb.Empty{}) //******* useful
-	if err != nil {
+		fileInfoMap, err := c.GetFileInfoMap(ctx, &emptypb.Empty{}) //******* useful
+
+		if err != nil {
+			conn.Close()
+			return err
+		}
+
+		*serverFileInfoMap = fileInfoMap.FileInfoMap //give value
+
+		// close the connection
 		conn.Close()
-		return err
 	}
-
-	*serverFileInfoMap = fileInfoMap.FileInfoMap //give value
-
-	// close the connection
-	return conn.Close()
+	fmt.Println("client call failed")
+	return fmt.Errorf("client call failed")
 }
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
 	// panic("todo")
 	// connect to the server
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
-	ip, err := surfClient.checkLeader()
-	if err != nil {
-		return err
-	}
-	leader := *ip
-	log.Println("call success")
-	fmt.Println(leader)
-	// conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
+	fmt.Println("client call updatefileinformap")
 
-	conn, err := grpc.Dial(leader, grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	// c := NewMetaStoreClient(conn) //return a metaStoreClient
-	c := NewRaftSurfstoreClient(conn)
+	for _, ip := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(ip, grpc.WithInsecure())
+		if err != nil {
+			return err
+		}
+		// c := NewMetaStoreClient(conn) //return a metaStoreClient
+		c := NewRaftSurfstoreClient(conn)
 
-	// perform the call
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 
-	log.Println("ready to update")
-	lsVersion, err := c.UpdateFile(ctx, fileMetaData) //******* useful
-	log.Println("update out")
-	log.Println(err)
-	if err != nil {
+		lsVersion, err := c.UpdateFile(ctx, fileMetaData) //******* useful
+
+		if err != nil {
+			conn.Close()
+			return err
+		}
+
+		*latestVersion = lsVersion.Version //give value
+
+		// close the connection
 		conn.Close()
-		return err
 	}
 
-	*latestVersion = lsVersion.Version //give value
-
-	// close the connection
-	return conn.Close()
+	fmt.Println("client call failed")
+	return fmt.Errorf("client call failed")
 }
 
 func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 	// panic("todo")
 	// connect to the server
-	ip, err := surfClient.checkLeader()
-	if err != nil {
-		return err
-	}
-	leader := *ip
-	log.Println("call success")
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
-	conn, err := grpc.Dial(leader, grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	// c := NewMetaStoreClient(conn) //return a metaStoreClient
-	c := NewRaftSurfstoreClient(conn)
+	fmt.Println("client call GetBlockStore")
 
-	// perform the call
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	for _, ip := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(ip, grpc.WithInsecure())
+		if err != nil {
+			return err
+		}
+		// c := NewMetaStoreClient(conn) //return a metaStoreClient
+		c := NewRaftSurfstoreClient(conn)
 
-	addr, err := c.GetBlockStoreAddr(ctx, &emptypb.Empty{}) //******* useful
-	if err != nil {
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		addr, err := c.GetBlockStoreAddr(ctx, &emptypb.Empty{}) //******* useful
+		if err != nil {
+			conn.Close()
+			return err
+		}
+		*blockStoreAddr = addr.Addr //give value
+
+		// close the connection
 		conn.Close()
-		return err
 	}
-	*blockStoreAddr = addr.Addr //give value
-
-	// close the connection
-	return conn.Close()
+	fmt.Println("client call failed")
+	return fmt.Errorf("client call failed")
 }
 
 // This line guarantees all method for RPCClient are implemented
