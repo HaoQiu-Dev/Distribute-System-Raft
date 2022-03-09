@@ -475,7 +475,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
-	// fmt.Println("send heart beat")
+	fmt.Println("send heart beat")
 	// fmt.Println("The leader term")
 	// fmt.Println(s.term)
 	// fmt.Println("The leader id")
