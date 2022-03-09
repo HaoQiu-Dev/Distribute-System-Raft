@@ -167,8 +167,8 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	if success {
 		fmt.Println("update success!")
 		// s.metaStore.UpdateFile(ctx, filemeta)
-		s.metaStore.UpdateFile(ctx, filemeta)
-		return nil, nil
+		v, _ := s.metaStore.UpdateFile(ctx, filemeta)
+		return v, nil
 
 	} else {
 		fmt.Println("update fail!")
