@@ -208,12 +208,14 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 			// s.pendingCommits[targetIdx] <- true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
 			s.commitIndex = targetIdx
 			ActivateChan <- true
+			fmt.Println("quit loop1")
 			break
 		}
 		//reached all nodes already
 		if logReplicaCount == len(s.ipList) {
 			// s.pendingCommits[targetIdx] <- false
 			ActivateChan <- false
+			fmt.Println("quit loop2")
 			break
 		}
 	}
@@ -288,7 +290,8 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		output, err = client.AppendEntries(ctx, input)
 		fmt.Println("try to append entry!")
-
+		fmt.Println("error")
+		fmt.Println(err)
 		for err != nil {
 			continue
 		}
