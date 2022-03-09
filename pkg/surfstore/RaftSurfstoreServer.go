@@ -174,7 +174,6 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 //attempt relicate to other severs //s is the leader s.attempt -> replicate
 func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
-	fmt.Println("Try to commit")
 	ActivateChan := *ACTchan
 	targetIdx := s.commitIndex + 1
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
@@ -255,7 +254,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		addr := s.ipList[serverIdx]
-		fmt.Println("Dial to follower, need replicentry")
+		// fmt.Println("Dial to follower, need replicentry")
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			// commitChan <- output
@@ -370,17 +369,15 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		Term:         s.term,
 		MatchedIndex: -1,
 	}
-
-	fmt.Println("In appendentries!")
+	// fmt.Println("In appendentries!")
 	if input.Term > s.term {
 		fmt.Println("term ++")
 		s.isLeader = false
 		s.term = input.Term
 	}
-
-	if input.Term == s.term {
-		fmt.Println("term equal")
-	}
+	// if input.Term == s.term {
+	// 	fmt.Println("term equal")
+	// }
 
 	if s.isCrashed {
 		fmt.Println("This sever crashed,now return")
@@ -475,12 +472,12 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
 	fmt.Println("send heart beat")
-	fmt.Println("The leader term")
-	fmt.Println(s.term)
-	fmt.Println("The leader id")
-	fmt.Println(s.serverId)
-	fmt.Println(s.isLeader)
-	fmt.Println("******")
+	// fmt.Println("The leader term")
+	// fmt.Println(s.term)
+	// fmt.Println("The leader id")
+	// fmt.Println(s.serverId)
+	// fmt.Println(s.isLeader)
+	// fmt.Println("******")
 
 	// check leader
 	if s.isCrashed {
