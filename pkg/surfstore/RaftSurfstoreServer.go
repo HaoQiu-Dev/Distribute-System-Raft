@@ -242,7 +242,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		commitChan <- output
 		return
 	}
-
+	fmt.Println("Be in infinity loop!")
 	//go routine continueously try to update  //whole log?
 	for {
 		// fmt.Println("try to replicate,loop")
