@@ -300,7 +300,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		if err == nil {
 			if output.Success {
-				fmt.Println("try to append entry! Success!")
+				// fmt.Println("try to append entry! Success!")
 				commitChan <- output
 				return
 			}
@@ -324,6 +324,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *AppendEntryOutput) {
 	fmt.Println("match log")
+	fmt.Println(s.serverId)
 	i := input.PrevLogIndex
 	for i >= 0 {
 		if s.log[i].Term == input.Entries[i].Term && reflect.DeepEqual(s.log[i].FileMetaData, input.Entries[i].FileMetaData) {
@@ -381,7 +382,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// }
 
 	if s.isCrashed {
-		fmt.Println("This sever crashed,now return")
+		// fmt.Println("This sever crashed,now return")
 		return output, ERR_SERVER_CRASHED
 	}
 
@@ -512,9 +513,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		}
 
 		if targetIdx == 0 {
-			fmt.Println("my term give 1!")
+			// fmt.Println("my term give 1!")
 			if len(s.log) == 0 {
-				fmt.Println("my term give 1.1!")
+				// fmt.Println("my term give 1.1!")
 				input = &AppendEntryInput{
 					Term:         s.term,
 					PrevLogIndex: -1,
@@ -524,7 +525,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 				}
 
 			} else if len(s.log) > 0 {
-				fmt.Println("my term give 1.2!")
+				// fmt.Println("my term give 1.2!")
 				input = &AppendEntryInput{
 					Term:         s.term,
 					PrevLogIndex: -1,
@@ -535,7 +536,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			}
 
 		} else if targetIdx > 0 {
-			fmt.Println("my term give 2!")
+			// fmt.Println("my term give 2!")
 			input = &AppendEntryInput{
 				Term:         s.term,
 				PrevLogTerm:  s.log[targetIdx-1].Term,
@@ -545,7 +546,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 				LeaderCommit: s.commitIndex,
 			}
 		} else if targetIdx < 0 {
-			fmt.Println("my term give 3!")
+			// fmt.Println("my term give 3!")
 			input = &AppendEntryInput{
 				Term:         s.term,
 				PrevLogIndex: -1,
@@ -557,7 +558,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		fmt.Println("Go to Append entry")
+		// fmt.Println("Go to Append entry")
 		output, _ := client.AppendEntries(ctx, input)
 		//retrun nil means The server is crashed
 		if output == nil {
