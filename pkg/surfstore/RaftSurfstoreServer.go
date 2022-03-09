@@ -230,18 +230,28 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		Success: false,
 	}
 
+	if s.isCrashed {
+		commitChan <- output
+		return
+	}
+
+	if !s.isLeader {
+		commitChan <- output
+		return
+	}
+
 	//go routine continueously try to update  //whole log?
 	for {
+		fmt.Println("in infinity loop")
+		// if s.isCrashed {
+		// 	commitChan <- output
+		// 	return
+		// }
 
-		if s.isCrashed {
-			commitChan <- output
-			return
-		}
-
-		if !s.isLeader {
-			commitChan <- output
-			return
-		}
+		// if !s.isLeader {
+		// 	commitChan <- output
+		// 	return
+		// }
 
 		addr := s.ipList[serverIdx]
 		fmt.Println("Dial to follower, need replicentry")
