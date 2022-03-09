@@ -438,9 +438,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		if int64(idx) == s.serverId {
 			continue
 		}
+
 		//Dial
 		conn, _ := grpc.Dial(addr, grpc.WithInsecure())
-		// conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		// if err != nil {
 		// 	continue
 		// }
@@ -478,8 +478,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		} else if targetIdx > 0 {
 			input = &AppendEntryInput{
 				Term:         s.term,
-				PrevLogTerm:  targetIdx - 1,
-				PrevLogIndex: s.log[targetIdx-1].Term,
+				PrevLogTerm:  s.log[targetIdx-1].Term,
+				PrevLogIndex: targetIdx - 1,
 				//TODO figure out which entries to send
 				Entries:      s.log[:targetIdx+1],
 				LeaderCommit: s.commitIndex,
