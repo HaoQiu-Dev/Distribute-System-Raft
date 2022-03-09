@@ -3,7 +3,6 @@ package surfstore
 import (
 	context "context"
 	"fmt"
-	"log"
 	"math"
 	reflect "reflect"
 	"sync"
@@ -57,7 +56,6 @@ func (s *RaftSurfstore) checkAllCrash() bool {
 
 	crashRecoverCount := 1
 	for {
-
 		<-crashChan
 		crashRecoverCount++
 
@@ -435,13 +433,14 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 // This should set the leader status and any related variables as if the node has just won an election
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// panic("todo")
-
+	s.isLeaderMutex.Lock()
+	defer s.isLeaderMutex.Unlock()
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
 	s.term++
 	s.isLeader = true
-	log.Printf("leader changed to %d", s.serverId)
+	// log.Printf("leader changed to %d", s.serverId)
 	return &Success{Flag: true}, nil
 }
 
