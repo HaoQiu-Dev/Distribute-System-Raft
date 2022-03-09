@@ -365,6 +365,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	}
 
 	if input.Term > s.term {
+		fmt.Println("term ++")
 		s.term = input.Term
 	}
 
@@ -519,7 +520,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-
+		fmt.Println("Go to Append entry")
 		output, _ := client.AppendEntries(ctx, input)
 		//retrun nil means The server is crashed
 		if output == nil {
