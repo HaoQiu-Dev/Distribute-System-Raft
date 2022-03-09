@@ -449,8 +449,10 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
-
+	fmt.Println("=======")
+	fmt.Println(s.term)
 	s.term++
+	fmt.Println(s.term)
 	fmt.Println("leader term ++")
 	s.isLeader = true
 	// log.Printf("leader changed to %d", s.serverId)
