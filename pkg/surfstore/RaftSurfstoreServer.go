@@ -162,8 +162,10 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	// success := <-committed //commite
 	success := <-ActivateChan
 	if success {
+		fmt.Println("update success!")
 		return s.metaStore.UpdateFile(ctx, filemeta)
 	} else {
+		fmt.Println("update fail!")
 		return nil, fmt.Errorf("update fail") //errors.New("update failed")
 	}
 	// return nil, nil
@@ -368,6 +370,9 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		fmt.Println("term ++")
 		s.term = input.Term
 	}
+	if input.Term == s.term {
+		fmt.Println("term equal")
+	}
 
 	if s.isCrashed {
 		return output, ERR_SERVER_CRASHED
@@ -439,10 +444,12 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	// panic("todo")
 	s.isLeaderMutex.Lock()
 	fmt.Println("set leader")
+
 	defer s.isLeaderMutex.Unlock()
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
+
 	s.term++
 	fmt.Println("leader term ++")
 	s.isLeader = true
@@ -525,8 +532,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 				Entries:      make([]*UpdateOperation, 0), //index to position
 				LeaderCommit: s.commitIndex,
 			}
+			fmt.Println(input.Term)
 		}
-
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		fmt.Println("Go to Append entry")
