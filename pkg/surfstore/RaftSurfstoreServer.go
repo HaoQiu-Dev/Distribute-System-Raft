@@ -515,7 +515,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	// fmt.Println(s.serverId)
 	// fmt.Println(s.isLeader)
 	// fmt.Println("******")
-
+	s.isLeaderMutex.Lock()
 	// check leader
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
@@ -618,6 +618,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		}
 	}
 	fmt.Println("send beats over")
+	defer s.isLeaderMutex.Unlock()
 	return &Success{Flag: true}, nil
 	// return nil, nil
 }
