@@ -97,6 +97,7 @@ func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan *chan bool) {
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	//panic("todo")
 	// return nil, nil
+	fmt.Println("getfilemap")
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
@@ -117,6 +118,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Empty) (*BlockStoreAddr, error) {
 	// panic("todo")
 	// return nil, nil
+	fmt.Println("getfileblock")
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
@@ -136,7 +138,7 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) (*Version, error) {
 	// panic("todo")
 	// return nil, ERR_NOT_LEADER
-
+	fmt.Println("updatefile!!====")
 	if !s.isLeader {
 		return nil, ERR_NOT_LEADER
 	}
@@ -365,7 +367,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		Success:      false,
 		MatchedIndex: -1,
 	}
-	fmt.Println("In appendentries!")
+	// fmt.Println("In appendentries!")
 	if input.Term > s.term {
 		fmt.Println("term ++")
 		s.isLeader = false
@@ -450,16 +452,16 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
-	fmt.Println("=======")
-	fmt.Println(s.term)
+	// fmt.Println("=======")
+	// fmt.Println(s.term)
 	s.term++
-	fmt.Println(s.term)
-	fmt.Println("leader term ++")
+	// fmt.Println(s.term)
+	// fmt.Println("leader term ++")
 	s.isLeader = true
-	fmt.Println("new leaderid")
-	fmt.Println(s.serverId)
-	fmt.Println("new leader state")
-	fmt.Println(s.isLeader)
+	// fmt.Println("new leaderid")
+	// fmt.Println(s.serverId)
+	// fmt.Println("new leader state")
+	// fmt.Println(s.isLeader)
 	// s.isLeaderMutex.Lock()
 	// log.Printf("leader changed to %d", s.serverId)
 	return &Success{Flag: true}, nil
@@ -470,13 +472,13 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
-	fmt.Println("send heart beat")
-	fmt.Println("The leader term")
-	fmt.Println(s.term)
-	fmt.Println("The leader id")
-	fmt.Println(s.serverId)
-	fmt.Println(s.isLeader)
-	fmt.Println("******")
+	// fmt.Println("send heart beat")
+	// fmt.Println("The leader term")
+	// fmt.Println(s.term)
+	// fmt.Println("The leader id")
+	// fmt.Println(s.serverId)
+	// fmt.Println(s.isLeader)
+	// fmt.Println("******")
 
 	// check leader
 	if s.isCrashed {
