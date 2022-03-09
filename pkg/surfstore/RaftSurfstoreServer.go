@@ -368,19 +368,20 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	fmt.Println("In appendentries!")
 	if input.Term > s.term {
 		fmt.Println("term ++")
+		s.isLeader = false
 		s.term = input.Term
 	}
-	if input.Term == s.term {
-		fmt.Println("term equal")
-	}
+	// if input.Term == s.term {
+	// 	fmt.Println("term equal")
+	// }
 
 	if s.isCrashed {
 		return output, ERR_SERVER_CRASHED
 	}
 
-	if s.isLeader {
-		s.isLeader = false
-	}
+	// if s.isLeader {
+	// 	s.isLeader = false
+	// }
 
 	//1. Reply false if term < currentTerm (§5.1)
 	if input.Term < s.term {
