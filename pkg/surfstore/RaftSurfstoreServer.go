@@ -208,12 +208,14 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 			// s.pendingCommits[targetIdx] <- true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
 			s.commitIndex = targetIdx
 			ActivateChan <- true
+			fmt.Println("quit block, majority answered")
 			break
 		}
 		//reached all nodes already
 		if logReplicaCount == len(s.ipList) {
 			// s.pendingCommits[targetIdx] <- false
 			ActivateChan <- false
+			fmt.Println("quit block, majority answered")
 			break
 		}
 	}
