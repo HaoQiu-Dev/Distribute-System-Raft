@@ -470,6 +470,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	fmt.Println(s.term)
 	fmt.Println("The leader id")
 	fmt.Println(s.serverId)
+	fmt.Println(s.isLeader)
 	fmt.Println("******")
 
 	// check leader
