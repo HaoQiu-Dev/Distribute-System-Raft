@@ -484,11 +484,11 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 
 		targetIdx := s.commitIndex + 1
 
-		// if targetIdx >= int64(len(s.log)) {
-		// 	targetIdx--
-		// }
+		if targetIdx >= int64(len(s.log)) {
+			targetIdx--
+		}
 
-		if targetIdx == 0 || targetIdx >= int64(len(s.log)) {
+		if targetIdx == 0 {
 			if len(s.log) == 0 {
 				input = &AppendEntryInput{
 					Term:         s.term,
