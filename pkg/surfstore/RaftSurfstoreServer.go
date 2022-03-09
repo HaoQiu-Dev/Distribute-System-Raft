@@ -45,6 +45,7 @@ type RaftSurfstore struct {
 }
 
 func (s *RaftSurfstore) checkAllCrash(support *chan bool) {
+	fmt.Println("Begin check crash!")
 	SOP := *support
 	crashChan := make(chan bool)
 	for idx, _ := range s.ipList {
@@ -73,7 +74,7 @@ func (s *RaftSurfstore) checkAllCrash(support *chan bool) {
 }
 
 func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan *chan bool) {
-
+	fmt.Println("Begin check follower!")
 	for {
 		CRSchan := *crashChan
 		addr := s.ipList[idx]
@@ -175,6 +176,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 //attempt relicate to other severs //s is the leader s.attempt -> replicate
 func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
+	fmt.Println("Begin attempt cmmit!")
 	ActivateChan := *ACTchan
 	targetIdx := s.commitIndex + 1
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
@@ -221,9 +223,9 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 
 // append/replicate log (Only leader s -> one follower )
 func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *AppendEntryOutput) {
-
+	fmt.Println("Begin REPLICAR!")
 	// if s.isCrashed {}
-	fmt.Println("try to replicate")
+	// fmt.Println("try to replicate")
 	output := &AppendEntryOutput{
 		ServerId:     s.serverId,
 		Success:      false,
@@ -245,7 +247,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	for {
 		// fmt.Println("try to replicate,loop")
 		if s.isCrashed {
-			fmt.Println("leader crashd")
+			// fmt.Println("leader crashd")
 			commitChan <- output
 			return
 		}
@@ -324,7 +326,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 //of last new entry)
 
 func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *AppendEntryOutput) {
-	fmt.Println("match log")
+	fmt.Println("BEGIN match log")
 	i := input.PrevLogIndex
 	for i >= 0 {
 		if s.log[i].Term == input.Entries[i].Term && reflect.DeepEqual(s.log[i].FileMetaData, input.Entries[i].FileMetaData) {
@@ -364,7 +366,7 @@ func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *Appen
 
 func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error) {
 	// panic("todo")
-
+	fmt.Println("Begin Append Entries!")
 	output := &AppendEntryOutput{
 		ServerId:     s.serverId,
 		Success:      false,
@@ -447,7 +449,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// panic("todo")
 	// s.isLeaderMutex.Lock()
-	fmt.Println("set leader")
+	fmt.Println("Begin set leader")
 	// s.isLeaderMutex.Unlock()
 	// defer
 	if s.isCrashed {
@@ -473,7 +475,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
-	fmt.Println("send heart beat")
+	fmt.Println("begin send heart beat")
 	// fmt.Println("The leader term")
 	// fmt.Println(s.term)
 	// fmt.Println("The leader id")
@@ -579,6 +581,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 }
 
 func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
+	fmt.Println("Begin server crash!")
 	s.isCrashedMutex.Lock()
 	s.isCrashed = true
 	s.isCrashedMutex.Unlock()
@@ -587,6 +590,7 @@ func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, 
 }
 
 func (s *RaftSurfstore) Restore(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
+	fmt.Println("Begin server restore!")
 	s.isCrashedMutex.Lock()
 	s.isCrashed = false
 	s.notCrashedCond.Broadcast()
@@ -600,6 +604,7 @@ func (s *RaftSurfstore) IsCrashed(ctx context.Context, _ *emptypb.Empty) (*Crash
 }
 
 func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Empty) (*RaftInternalState, error) {
+	fmt.Println("Begin server getinternalstate!")
 	fileInfoMap, _ := s.metaStore.GetFileInfoMap(ctx, empty)
 	return &RaftInternalState{
 		IsLeader: s.isLeader,
