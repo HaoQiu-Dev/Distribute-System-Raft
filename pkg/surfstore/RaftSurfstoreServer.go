@@ -3,6 +3,7 @@ package surfstore
 import (
 	context "context"
 	"fmt"
+	"log"
 	"math"
 	reflect "reflect"
 	"sync"
@@ -407,7 +408,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	}
 	s.term++
 	s.isLeader = true
-	fmt.Printf("leader changed to %d", s.serverId)
+	log.Printf("leader changed to %d", s.serverId)
 	return &Success{Flag: true}, nil
 }
 
