@@ -313,6 +313,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 			}
 		} else {
 			fmt.Println("server crash retrun attemt commit!")
+			commitChan <- output
 			return
 		}
 
