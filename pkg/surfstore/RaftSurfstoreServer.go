@@ -52,7 +52,7 @@ func (s *RaftSurfstore) checkAllCrash() bool {
 		if int64(idx) == s.serverId {
 			continue
 		}
-		go s.chechkFollowerCrash(int64(idx), crashChan)
+		go s.chechkFollowerCrash(int64(idx), &crashChan)
 	}
 
 	crashRecoverCount := 1
@@ -71,9 +71,10 @@ func (s *RaftSurfstore) checkAllCrash() bool {
 	}
 }
 
-func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan chan bool) {
+func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan *chan bool) {
 
 	for {
+		CRSchan := *crashChan
 		addr := s.ipList[idx]
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
@@ -85,7 +86,7 @@ func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan chan bool) {
 
 		crashInfor, _ := client.IsCrashed(ctx, &emptypb.Empty{})
 		if !crashInfor.IsCrashed {
-			crashChan <- true
+			CRSchan <- true
 			return
 		}
 	}
