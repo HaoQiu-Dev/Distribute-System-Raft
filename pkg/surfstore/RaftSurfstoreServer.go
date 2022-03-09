@@ -295,6 +295,10 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		for err != nil {
 			continue
 		}
+		if output.Success {
+			commitChan <- output
+			return
+		}
 		// for {
 		// 	output, _ = client.AppendEntries(ctx, input)
 
@@ -312,10 +316,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		// 	}
 		// }
 
-		if output.Success {
-			commitChan <- output
-			return
-		}
 	}
 }
 
@@ -563,6 +563,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		defer cancel()
 		fmt.Println("Go to Append entry")
 		output, _ := client.AppendEntries(ctx, input)
+		fmt.Println("Go to Append entry back")
 		//retrun nil means The server is crashed
 		if output == nil {
 			// return &Success{Flag: false}, ERR_SERVER_CRASHED
