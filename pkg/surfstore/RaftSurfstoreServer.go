@@ -191,12 +191,12 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 	currentTerm := -1
 
 	for {
-		if s.isCrashed {
-			return
-		}
-		if !s.isLeader {
-			return
-		}
+		// if s.isCrashed {
+		// 	return
+		// }
+		// if !s.isLeader {
+		// 	return
+		// }
 		//TODO handle crashed nodes NEED // don't forever loop (each node once)
 		commit := <-commitchan // go routine and get feedback
 		currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
@@ -292,13 +292,17 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		fmt.Println("try to append entry!")
 		fmt.Println("error")
 		fmt.Println(err)
-		for err != nil {
-			continue
-		}
+		fmt.Println(output.Success)
+
+		// for err != nil {
+		// 	continue
+		// }
+
 		if output.Success {
 			commitChan <- output
 			return
 		}
+		fmt.Println("continue for loop")
 		// for {
 		// 	output, _ = client.AppendEntries(ctx, input)
 
