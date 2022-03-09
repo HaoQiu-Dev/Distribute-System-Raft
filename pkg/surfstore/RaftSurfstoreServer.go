@@ -516,6 +516,14 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 				Entries:      s.log[:targetIdx+1],
 				LeaderCommit: s.commitIndex,
 			}
+		} else if targetIdx < 0 {
+			input = &AppendEntryInput{
+				Term:         s.term,
+				PrevLogIndex: -1,
+				PrevLogTerm:  -1,
+				Entries:      make([]*UpdateOperation, 0), //index to position
+				LeaderCommit: s.commitIndex,
+			}
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
