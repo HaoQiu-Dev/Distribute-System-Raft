@@ -164,7 +164,8 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	success := <-ActivateChan
 	if success {
 		fmt.Println("update success!")
-		return s.metaStore.UpdateFile(ctx, filemeta)
+		s.metaStore.UpdateFile(ctx, filemeta)
+		return nil, nil
 	} else {
 		fmt.Println("update fail!")
 		return nil, fmt.Errorf("update fail") //errors.New("update failed")
@@ -573,7 +574,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		}
 	}
 	fmt.Println("send beats over")
-	return &Success{Flag: true}, nil
+	// return &Success{Flag: true}, nil
+	return nil, nil
 }
 
 func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
