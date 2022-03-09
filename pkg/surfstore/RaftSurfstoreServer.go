@@ -208,14 +208,12 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 			// s.pendingCommits[targetIdx] <- true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
 			s.commitIndex = targetIdx
 			ActivateChan <- true
-			fmt.Println("quit block, majority answered")
 			break
 		}
 		//reached all nodes already
 		if logReplicaCount == len(s.ipList) {
 			// s.pendingCommits[targetIdx] <- false
 			ActivateChan <- false
-			fmt.Println("quit block, majority answered")
 			break
 		}
 	}
@@ -232,7 +230,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 	//go routine continueously try to update  //whole log?
 	for {
-		fmt.Println("try to replicate,loop")
+
 		if s.isCrashed {
 			commitChan <- output
 			return
@@ -290,10 +288,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		output, err = client.AppendEntries(ctx, input)
 		fmt.Println("try to append entry!")
-		fmt.Println("what err?")
-		fmt.Println(err)
-		fmt.Println("is success")
-		fmt.Println(output.Success)
+
 		for err != nil {
 			continue
 		}
@@ -386,7 +381,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// }
 
 	if s.isCrashed {
-		fmt.Println("This sever crashed,now return")
 		return output, ERR_SERVER_CRASHED
 	}
 
@@ -531,7 +525,6 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 					Entries:      make([]*UpdateOperation, 0), //index to position
 					LeaderCommit: s.commitIndex,
 				}
-
 			} else if len(s.log) > 0 {
 				fmt.Println("my term give 1.2!")
 				input = &AppendEntryInput{
@@ -542,7 +535,6 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 					LeaderCommit: s.commitIndex,
 				}
 			}
-
 		} else if targetIdx > 0 {
 			fmt.Println("my term give 2!")
 			input = &AppendEntryInput{
