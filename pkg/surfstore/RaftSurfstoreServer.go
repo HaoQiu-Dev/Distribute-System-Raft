@@ -442,10 +442,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 // This should set the leader status and any related variables as if the node has just won an election
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// panic("todo")
-	s.isLeaderMutex.Lock()
+	// s.isLeaderMutex.Lock()
 	fmt.Println("set leader")
 
-	defer s.isLeaderMutex.Unlock()
+	// defer s.isLeaderMutex.Unlock()
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
