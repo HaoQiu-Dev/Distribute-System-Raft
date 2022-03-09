@@ -165,7 +165,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	success := <-ActivateChan
 	if success {
 		fmt.Println("update success!")
-		s.metaStore.UpdateFile(ctx, filemeta)
+		// s.metaStore.UpdateFile(ctx, filemeta)
 		return s.metaStore.UpdateFile(ctx, filemeta)
 	} else {
 		fmt.Println("update fail!")
@@ -208,15 +208,18 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 		}
 		if logReplicaCount > len(s.ipList)/2 && int64(currentTerm) <= s.log[targetIdx].Term {
 			// s.pendingCommits[targetIdx] <- true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
+			fmt.Println("replcate greater > 1/2! commit!")
 			s.commitIndex = targetIdx
 			ActivateChan <- true
-			break
+			// break
+			return
 		}
 		//reached all nodes already
 		if logReplicaCount == len(s.ipList) {
 			// s.pendingCommits[targetIdx] <- false
 			ActivateChan <- false
-			break
+			// break
+			return
 		}
 	}
 }
@@ -312,7 +315,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		// for err != nil {
 		// 	continue
 		// }
-
 	}
 }
 
