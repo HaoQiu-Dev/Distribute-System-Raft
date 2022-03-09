@@ -325,7 +325,7 @@ func deleteFile(localFileMetaMap map[string]*FileMetaData, client RPCClient, fil
 //Implement the logic for a client syncing with the server here.
 func ClientSync(client RPCClient) {
 	// panic("todo")
-
+	fmt.Println("use my client sync!!")
 	var blockStoreAddr string
 	if err := client.GetBlockStoreAddr(&blockStoreAddr); err != nil { //blockStoreAddr is the ADDR
 		log.Fatal(err)
