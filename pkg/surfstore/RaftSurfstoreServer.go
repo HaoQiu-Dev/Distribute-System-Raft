@@ -141,6 +141,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	// return nil, ERR_NOT_LEADER
 	fmt.Println("updatefile!!====")
 	if !s.isLeader {
+		fmt.Println("leader changed,call failed")
 		return nil, ERR_NOT_LEADER
 	}
 	if s.isCrashed {

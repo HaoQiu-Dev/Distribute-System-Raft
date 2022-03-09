@@ -178,10 +178,9 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 
 		lsVersion, _ := c.UpdateFile(ctx, fileMetaData) //******* useful
 
-		// if err != nil {
-		// 	conn.Close()
-		// 	continue
-		// }
+		if err != nil {
+			continue
+		}
 
 		*latestVersion = lsVersion.Version //give value
 
