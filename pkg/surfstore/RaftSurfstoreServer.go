@@ -223,7 +223,7 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *AppendEntryOutput) {
 
 	// if s.isCrashed {}
-
+	fmt.Println("try to replicate")
 	output := &AppendEntryOutput{
 		Success: false,
 	}
