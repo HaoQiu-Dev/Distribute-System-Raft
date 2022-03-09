@@ -44,7 +44,8 @@ type RaftSurfstore struct {
 	UnimplementedRaftSurfstoreServer
 }
 
-func (s *RaftSurfstore) checkAllCrash() bool {
+func (s *RaftSurfstore) checkAllCrash(support *chan bool) {
+	SOP := *support
 	crashChan := make(chan bool)
 	for idx, _ := range s.ipList {
 		//skip severself
@@ -60,11 +61,13 @@ func (s *RaftSurfstore) checkAllCrash() bool {
 		crashRecoverCount++
 
 		if crashRecoverCount > len(s.ipList)/2 {
-			return true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
+			SOP <- true
+			return //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
 		}
 		//reached all nodes already
 		if crashRecoverCount == len(s.ipList) {
-			return false
+			SOP <- false
+			return
 		}
 	}
 }
@@ -101,9 +104,10 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 		return nil, ERR_NOT_LEADER
 	}
 
-	support := s.checkAllCrash()
-
-	if support {
+	support := make(chan bool)
+	go s.checkAllCrash(&support)
+	SOP := <-support
+	if SOP {
 		return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
 	}
 	return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
@@ -120,9 +124,10 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 		return nil, ERR_NOT_LEADER
 	}
 
-	support := s.checkAllCrash()
-
-	if support {
+	support := make(chan bool)
+	go s.checkAllCrash(&support)
+	SOP := <-support
+	if SOP {
 		return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 	}
 	return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
@@ -174,7 +179,7 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 		if int64(idx) == s.serverId {
 			continue
 		}
-		go s.replicEntry(int64(idx), targetIdx, commitchan) //5ci
+		go s.replicEntry(int64(idx), targetIdx, commitchan) //1 -> 4
 	}
 
 	logReplicaCount := 1
@@ -434,6 +439,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// panic("todo")
 	s.isLeaderMutex.Lock()
+	fmt.Println("set leader")
 	defer s.isLeaderMutex.Unlock()
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
@@ -449,7 +455,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
-
+	fmt.Println("send heart beat")
 	// check leader
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
@@ -472,14 +478,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		client := NewRaftSurfstoreClient(conn)
 
 		//TODO create correct AppendEntryIput from s.nextIdx, etc
-
 		var input *AppendEntryInput
-
 		targetIdx := s.commitIndex + 1
-
-		if targetIdx >= int64(len(s.log)) {
-			targetIdx--
-		}
 
 		if targetIdx == 0 {
 			if len(s.log) == 0 {
@@ -511,9 +511,17 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			}
 		}
 
+		if targetIdx >= int64(len(s.log)) {
+			input = &AppendEntryInput{
+				Term:         s.term,
+				PrevLogIndex: -1,
+				PrevLogTerm:  -1,
+				Entries:      make([]*UpdateOperation, 0), //index to position
+				LeaderCommit: s.commitIndex,
+			}
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-
 		output, _ := client.AppendEntries(ctx, input)
 		//retrun nil means The server is crashed
 		if output == nil {
