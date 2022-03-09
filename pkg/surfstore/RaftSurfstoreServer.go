@@ -191,12 +191,12 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 	currentTerm := -1
 
 	for {
-		// if s.isCrashed {
-		// 	return
-		// }
-		// if !s.isLeader {
-		// 	return
-		// }
+		if s.isCrashed {
+			return
+		}
+		if !s.isLeader {
+			return
+		}
 		//TODO handle crashed nodes NEED // don't forever loop (each node once)
 		commit := <-commitchan // go routine and get feedback
 		currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
@@ -208,14 +208,12 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 			// s.pendingCommits[targetIdx] <- true //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
 			s.commitIndex = targetIdx
 			ActivateChan <- true
-			fmt.Println("quit loop1")
 			break
 		}
 		//reached all nodes already
 		if logReplicaCount == len(s.ipList) {
 			// s.pendingCommits[targetIdx] <- false
 			ActivateChan <- false
-			fmt.Println("quit loop2")
 			break
 		}
 	}
@@ -226,27 +224,13 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 	// if s.isCrashed {}
 	fmt.Println("try to replicate")
-
 	output := &AppendEntryOutput{
-		ServerId:     s.serverId,
-		Success:      false,
-		Term:         s.term,
-		MatchedIndex: -1,
+		Success: false,
 	}
-
-	// if s.isCrashed {
-	// 	commitChan <- output
-	// 	return
-	// }
-
-	// if !s.isLeader {
-	// 	commitChan <- output
-	// 	return
-	// }
 
 	//go routine continueously try to update  //whole log?
 	for {
-		fmt.Println("in infinity loop")
+		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
 			commitChan <- output
 			return
@@ -304,38 +288,17 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		output, err = client.AppendEntries(ctx, input)
 		fmt.Println("try to append entry!")
-		fmt.Println("error")
-		fmt.Println(err)
-		fmt.Println(output.Success)
 
-		// for err != nil {
-		// 	continue
-		// }
-		if err != nil {
+		if err == nil {
+			if output.Success {
+				commitChan <- output
+				return
+			}
+		}
+
+		for err != nil {
 			continue
 		}
-
-		if output.Success {
-			commitChan <- output
-			return
-		}
-		fmt.Println("continue for loop")
-		// for {
-		// 	output, _ = client.AppendEntries(ctx, input)
-
-		// 	if output.Success {
-		// 		break
-		// 	}
-		// 	if input.PrevLogIndex < 0 {
-		// 		break
-		// 	}
-		// 	//TODO update state. s.nextIndex, etc / If failed, we want to decrement nextIndex and try again (retry needed here)
-		// 	if !output.Success {
-		// 		input.PrevLogIndex--
-		// 		input.PrevLogTerm = s.log[input.PrevLogIndex].Term
-		// 		input.Entries = s.log[:entryIdx+1] //give the whole log
-		// 	}
-		// }
 
 	}
 }
@@ -391,11 +354,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// panic("todo")
 
 	output := &AppendEntryOutput{
-		// Success:      false,
-		// MatchedIndex: -1,
-		ServerId:     s.serverId,
 		Success:      false,
-		Term:         s.term,
 		MatchedIndex: -1,
 	}
 	// fmt.Println("In appendentries!")
@@ -409,6 +368,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// }
 
 	if s.isCrashed {
+		fmt.Println("This sever crashed,now return")
 		return output, ERR_SERVER_CRASHED
 	}
 
@@ -553,6 +513,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 					Entries:      make([]*UpdateOperation, 0), //index to position
 					LeaderCommit: s.commitIndex,
 				}
+
 			} else if len(s.log) > 0 {
 				fmt.Println("my term give 1.2!")
 				input = &AppendEntryInput{
@@ -563,6 +524,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 					LeaderCommit: s.commitIndex,
 				}
 			}
+
 		} else if targetIdx > 0 {
 			fmt.Println("my term give 2!")
 			input = &AppendEntryInput{
@@ -588,7 +550,6 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		defer cancel()
 		fmt.Println("Go to Append entry")
 		output, _ := client.AppendEntries(ctx, input)
-		fmt.Println("Go to Append entry back")
 		//retrun nil means The server is crashed
 		if output == nil {
 			// return &Success{Flag: false}, ERR_SERVER_CRASHED
