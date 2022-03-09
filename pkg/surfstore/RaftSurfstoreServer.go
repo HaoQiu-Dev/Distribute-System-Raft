@@ -305,7 +305,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		output, err := client.AppendEntries(ctx, input)
-
+		fmt.Println("replica append entry out")
 		if !s.isLeader {
 			output := &AppendEntryOutput{
 				ServerId:     s.serverId,

@@ -162,7 +162,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	// panic("todo")
 	// connect to the server
 	// conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
-	fmt.Println("client call updatefileinformap")
+	fmt.Println("client call updatefile")
 
 	for _, ip := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(ip, grpc.WithInsecure())
