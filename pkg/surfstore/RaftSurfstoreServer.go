@@ -363,7 +363,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		Success:      false,
 		MatchedIndex: -1,
 	}
-
+	fmt.Println("In appendentries!")
 	if input.Term > s.term {
 		fmt.Println("term ++")
 		s.term = input.Term
@@ -422,9 +422,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	//of last new entry)
 	//TODO only do this if leaderCommit > commitIndex
 	s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log)-1)))
-
 	//
-
 	for s.lastApplied < s.commitIndex {
 		s.lastApplied++
 		entry := s.log[s.lastApplied]
@@ -446,6 +444,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
 	s.term++
+	fmt.Println("leader term ++")
 	s.isLeader = true
 	// log.Printf("leader changed to %d", s.serverId)
 	return &Success{Flag: true}, nil
