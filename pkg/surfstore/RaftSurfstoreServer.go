@@ -174,6 +174,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 //attempt relicate to other severs //s is the leader s.attempt -> replicate
 func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
+	fmt.Println("Try to commit")
 	ActivateChan := *ACTchan
 	targetIdx := s.commitIndex + 1
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
