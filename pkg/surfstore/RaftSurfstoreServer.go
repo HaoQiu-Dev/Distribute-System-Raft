@@ -105,7 +105,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 	if s.isCrashed {
 		return nil, ERR_NOT_LEADER
 	}
-
+	fmt.Println("client call success")
 	support := make(chan bool)
 	go s.checkAllCrash(&support)
 	SOP := <-support
@@ -126,7 +126,7 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 	if s.isCrashed {
 		return nil, ERR_NOT_LEADER
 	}
-
+	fmt.Println("client call success")
 	support := make(chan bool)
 	go s.checkAllCrash(&support)
 	SOP := <-support
@@ -146,7 +146,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	if s.isCrashed {
 		return nil, ERR_SERVER_CRASHED
 	}
-
+	fmt.Println("client call success")
 	op := UpdateOperation{
 		Term:         s.term,
 		FileMetaData: filemeta,

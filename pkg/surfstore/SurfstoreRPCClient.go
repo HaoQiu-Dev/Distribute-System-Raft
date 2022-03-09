@@ -143,7 +143,6 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		defer cancel()
 
 		fileInfoMap, err := c.GetFileInfoMap(ctx, &emptypb.Empty{}) //******* useful
-
 		if err != nil {
 			conn.Close()
 			continue
@@ -152,7 +151,8 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		*serverFileInfoMap = fileInfoMap.FileInfoMap //give value
 
 		// close the connection
-		conn.Close()
+
+		return conn.Close()
 	}
 	fmt.Println("client call failed")
 	return fmt.Errorf("client call failed")
@@ -176,17 +176,20 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
-		lsVersion, err := c.UpdateFile(ctx, fileMetaData) //******* useful
+		lsVersion, _ := c.UpdateFile(ctx, fileMetaData) //******* useful
 
-		if err != nil {
-			conn.Close()
-			continue
-		}
+		// if err != nil {
+		// 	conn.Close()
+		// 	continue
+		// }
 
 		*latestVersion = lsVersion.Version //give value
 
 		// close the connection
-		conn.Close()
+		// if err != nil {
+		// 	return conn.Close()
+		// }
+		return conn.Close()
 	}
 
 	fmt.Println("client call failed")
@@ -219,8 +222,10 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 		*blockStoreAddr = addr.Addr //give value
 
 		// close the connection
-		conn.Close()
+
+		return conn.Close()
 	}
+
 	fmt.Println("client call failed")
 	return fmt.Errorf("client call failed")
 }
