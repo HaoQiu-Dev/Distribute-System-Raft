@@ -234,28 +234,28 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		MatchedIndex: -1,
 	}
 
-	if s.isCrashed {
-		commitChan <- output
-		return
-	}
+	// if s.isCrashed {
+	// 	commitChan <- output
+	// 	return
+	// }
 
-	if !s.isLeader {
-		commitChan <- output
-		return
-	}
+	// if !s.isLeader {
+	// 	commitChan <- output
+	// 	return
+	// }
 
 	//go routine continueously try to update  //whole log?
 	for {
 		fmt.Println("in infinity loop")
-		// if s.isCrashed {
-		// 	commitChan <- output
-		// 	return
-		// }
+		if s.isCrashed {
+			commitChan <- output
+			return
+		}
 
-		// if !s.isLeader {
-		// 	commitChan <- output
-		// 	return
-		// }
+		if !s.isLeader {
+			commitChan <- output
+			return
+		}
 
 		addr := s.ipList[serverIdx]
 		fmt.Println("Dial to follower, need replicentry")
@@ -302,19 +302,23 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 			}
 		}
 
-		output, err := client.AppendEntries(ctx, input)
+		output, err = client.AppendEntries(ctx, input)
 		fmt.Println("try to append entry!")
 		fmt.Println("error")
 		fmt.Println(err)
 		// fmt.Println(output.Success)
 
-		if err == nil {
-			if output.Success {
-				commitChan <- output
-				return
-			}
+		// for err != nil {
+		// 	continue
+		// }
+		if err != nil {
+			continue
 		}
 
+		if output.Success {
+			commitChan <- output
+			return
+		}
 		fmt.Println("continue for loop")
 		// for {
 		// 	output, _ = client.AppendEntries(ctx, input)
@@ -479,18 +483,8 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
-	// fmt.Println("=======")
-	// fmt.Println(s.term)
 	s.term++
-	// fmt.Println(s.term)
-	// fmt.Println("leader term ++")
 	s.isLeader = true
-	// fmt.Println("new leaderid")
-	// fmt.Println(s.serverId)
-	// fmt.Println("new leader state")
-	// fmt.Println(s.isLeader)
-	// s.isLeaderMutex.Lock()
-	// log.Printf("leader changed to %d", s.serverId)
 	return &Success{Flag: true}, nil
 }
 
@@ -500,13 +494,6 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	//you can send nothing or sent logs! nomally send nothing otherwise send logs!
 	// panic("todo")
 	fmt.Println("send heart beat")
-	// fmt.Println("The leader term")
-	// fmt.Println(s.term)
-	// fmt.Println("The leader id")
-	// fmt.Println(s.serverId)
-	// fmt.Println(s.isLeader)
-	// fmt.Println("******")
-
 	// check leader
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
@@ -585,6 +572,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		fmt.Println("Go to Append entry")
 		output, _ := client.AppendEntries(ctx, input)
 		fmt.Println("Go to Append entry back")
+		fmt.Println("output!!!")
+		fmt.Println(output.Success)
+
 		//retrun nil means The server is crashed
 		if output == nil {
 			// return &Success{Flag: false}, ERR_SERVER_CRASHED
