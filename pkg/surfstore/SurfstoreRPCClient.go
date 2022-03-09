@@ -176,7 +176,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
-		lsVersion, _ := c.UpdateFile(ctx, fileMetaData) //******* useful
+		lsVersion, err := c.UpdateFile(ctx, fileMetaData) //******* useful
 
 		if err != nil {
 			continue
