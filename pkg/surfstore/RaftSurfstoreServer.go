@@ -288,7 +288,10 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		output, err = client.AppendEntries(ctx, input)
 		fmt.Println("try to append entry!")
-
+		fmt.Println("what err?")
+		fmt.Println(err)
+		fmt.Println("is success")
+		fmt.Println(output.Success)
 		for err != nil {
 			continue
 		}
