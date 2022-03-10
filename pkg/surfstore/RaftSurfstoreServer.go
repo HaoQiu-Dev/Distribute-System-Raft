@@ -178,6 +178,17 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 	fmt.Println("Begin attempt cmmit!")
 	// ActivateChan := *ACTchan
+
+	if s.isCrashed {
+		ActivateChan <- false
+		return
+	}
+
+	if !s.isLeader {
+		ActivateChan <- false
+		return
+	}
+
 	targetIdx := s.commitIndex + 1
 
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
@@ -336,8 +347,10 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		output, err := client.AppendEntries(ctx, input)
 		fmt.Println("replica append entry out")
-		print("s.isCrashed=======")
-		print(s.isCrashed)
+		fmt.Println("s.isCrashed=======")
+		fmt.Println(s.isCrashed)
+		fmt.Println("s.serverId****")
+		fmt.Println(s.serverId)
 
 		if s.isCrashed {
 			return
