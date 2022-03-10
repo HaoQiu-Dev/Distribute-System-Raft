@@ -169,7 +169,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 		v, _ := s.metaStore.UpdateFile(ctx, filemeta)
 		return v, nil
 	} else {
-		fmt.Println("update fail!")
+		fmt.Println("update fail! or log == 0")
 		return nil, errors.New("update failed")
 	}
 	// return nil, nil
@@ -250,10 +250,19 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 					return
 					// }
 				}
+			} else if len(s.log) == 0 {
+				fmt.Println("1/2! commit!")
+				if int(targetIdx) <= len(s.log)-1 {
+					s.commitIndex = targetIdx
+				}
+				ActivateChan <- false
+				fmt.Println("finish attempt commit!")
+				return
 			}
+
 		}
 
-		//reached all nodes already
+		//reached all nodes already (if some crash?)
 		if replyCount == len(s.ipList) {
 			ActivateChan <- false
 			return
@@ -570,7 +579,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		fmt.Println("send beats over")
 		return &Success{Flag: true}, nil
 	} else {
-		fmt.Println("send beats false")
+		fmt.Println("send beats false, but half reply!")
 		return &Success{Flag: false}, nil
 	}
 
