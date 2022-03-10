@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	reflect "reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -222,8 +223,6 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 // append/replicate log (Only leader s -> one follower )
 func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *AppendEntryOutput) {
 	fmt.Println("Begin REPLICAR!")
-	// if s.isCrashed {}
-	// fmt.Println("try to replicate")
 	output := &AppendEntryOutput{
 		ServerId:     s.serverId,
 		Success:      false,
@@ -235,7 +234,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		commitChan <- output
 		return
 	}
-
 	if !s.isLeader {
 		commitChan <- output
 		return
@@ -281,8 +279,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 					Term:         s.term,
 					PrevLogIndex: -1,
 					PrevLogTerm:  -1,
-					// PrevLogIndex: entryIdx - 1,
-					// PrevLogTerm:  s.log[entryIdx-1].Term,
 					Entries:      make([]*UpdateOperation, 0), //index to position
 					LeaderCommit: s.commitIndex}
 			} else {
@@ -290,16 +286,12 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 					Term:         s.term,
 					PrevLogIndex: -1,
 					PrevLogTerm:  -1,
-					// PrevLogIndex: entryIdx - 1,
-					// PrevLogTerm:  s.log[entryIdx-1].Term,
 					Entries:      s.log[:entryIdx+1], //index to position
 					LeaderCommit: s.commitIndex}
 			}
 		} else if entryIdx > 0 {
 			input = &AppendEntryInput{
-				Term: s.term,
-				// PrevLogIndex: -1,
-				// PrevLogTerm:  -1,
+				Term:         s.term,
 				PrevLogIndex: entryIdx - 1,
 				PrevLogTerm:  s.log[entryIdx-1].Term,
 				Entries:      s.log[:entryIdx+1], //index to position
@@ -334,6 +326,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		// fmt.Println("try to append entry!")
 		fmt.Println(err)
+
 		if err == nil {
 			if output.Success {
 				fmt.Println("try to append entry! Success!")
@@ -345,7 +338,15 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				return
 			}
 		}
-		fmt.Println("Append fails continue!")
+
+		if err != nil {
+			if strings.Contains(err.Error(), ERR_NOT_LEADER.Error()) || strings.Contains(err.Error(), ERR_SERVER_CRASHED.Error()) {
+				continue
+			} else {
+				fmt.Println("Append fails continue!")
+				return
+			}
+		}
 		// for err != nil {
 		// 	continue
 		// }
@@ -375,7 +376,6 @@ func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *Appen
 			i--
 		}
 	}
-
 	if i < 0 {
 		s.log = s.log[:0]
 		s.log = append(s.log, input.Entries...)
@@ -393,11 +393,6 @@ func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *Appen
 		output.MatchedIndex = int64(len(s.log) - 1)
 		return
 	}
-
-	// for j:= output.MatchedIndex;j <= input.PrevLogIndex;j++{
-	// 	s.log = append(s.log, )
-	// }
-
 }
 
 func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error) {
@@ -409,16 +404,11 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		Term:         s.term,
 		MatchedIndex: -1,
 	}
-	// fmt.Println("In appendentries!")
 	if input.Term > s.term {
 		fmt.Println("term ++")
 		s.isLeader = false
 		s.term = input.Term
 	}
-	// if input.Term == s.term {
-	// 	fmt.Println("term equal")
-	// }
-
 	if s.isCrashed {
 		fmt.Println("This sever crashed,now return")
 		return output, ERR_SERVER_CRASHED
@@ -430,7 +420,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		fmt.Println("small term false")
 		return output, nil
 	}
-
 	if len(input.Entries) == 0 {
 		return output, nil
 	}
@@ -518,8 +507,6 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	success := <-ActivateChan
 	if success {
 		fmt.Println("send beats over")
-		// defer s.isLeaderMutex.Unlock()
-		// return nil, nil
 		return &Success{Flag: true}, nil
 	} else {
 		fmt.Println("send beats false")
