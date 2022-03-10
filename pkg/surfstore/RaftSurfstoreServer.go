@@ -225,13 +225,27 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 		}
 		// && int64(currentTerm) <= s.log[targetIdx].Term
 		if CommitNumberCount > len(s.ipList)/2 {
-			fmt.Println("replcate greater > 1/2! commit!")
-			if int(targetIdx) <= len(s.log)-1 {
-				s.commitIndex = targetIdx
+			if len(s.log) > 0 {
+				if s.term == s.log[targetIdx].Term {
+					fmt.Println("replcate greater > 1/2! commit!")
+					if int(targetIdx) <= len(s.log)-1 {
+						s.commitIndex = targetIdx
+					}
+					ActivateChan <- true
+					fmt.Println("finish attempt commit!")
+					return
+				} else if s.term > s.log[targetIdx].Term {
+					if len(s.log) > int(targetIdx) {
+						fmt.Println("replcate greater > 1/2! commit!")
+						if int(targetIdx) < len(s.log)-1 {
+							s.commitIndex = targetIdx
+						}
+						ActivateChan <- true
+						fmt.Println("finish attempt commit!")
+						return
+					}
+				}
 			}
-			ActivateChan <- true
-			fmt.Println("finish attempt commit!")
-			return
 		}
 		//reached all nodes already
 		if replyCount == len(s.ipList) {
@@ -430,15 +444,16 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		MatchedIndex: -1,
 	}
 
-	if s.isCrashed {
-		fmt.Println("This sever crashed,now return")
-		return output, ERR_SERVER_CRASHED
-	}
-	//modify term!!!!
+	//modify term!!!!,There them must be the same
 	if input.Term > s.term {
 		fmt.Println("term ++")
 		s.isLeader = false
 		s.term = input.Term
+	}
+
+	if s.isCrashed {
+		fmt.Println("This sever crashed,now return")
+		return output, ERR_SERVER_CRASHED
 	}
 
 	if len(input.Entries) == 0 {
@@ -489,10 +504,16 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	fmt.Println(s.isCrashed)
 	output = s.matchTermAndEntry(input, output)
 
+	if s.isCrashed {
+		fmt.Println("This sever crashed,now return!@")
+		return output, ERR_SERVER_CRASHED
+	}
+
 	//5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
 	//of last new entry)
 	//TODO only do this if leaderCommit > commitIndex
 	s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log)-1)))
+
 	//
 	for s.lastApplied < s.commitIndex {
 		s.lastApplied++
