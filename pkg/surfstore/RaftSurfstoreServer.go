@@ -206,7 +206,8 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 		if commit.Success {
 			CommitNumberCount++
 		}
-		if CommitNumberCount > len(s.ipList)/2 && int64(currentTerm) <= s.log[targetIdx].Term {
+		// && int64(currentTerm) <= s.log[targetIdx].Term
+		if CommitNumberCount > len(s.ipList)/2 {
 			fmt.Println("replcate greater > 1/2! commit!")
 			s.commitIndex = targetIdx
 			ActivateChan <- true
