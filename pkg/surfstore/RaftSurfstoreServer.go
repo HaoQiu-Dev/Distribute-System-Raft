@@ -2,6 +2,7 @@ package surfstore
 
 import (
 	context "context"
+	"errors"
 	"fmt"
 	"math"
 	reflect "reflect"
@@ -169,7 +170,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 		return v, nil
 	} else {
 		fmt.Println("update fail!")
-		return nil, nil //errors.New("update failed")
+		return nil, errors.New("update failed")
 	}
 	// return nil, nil
 }
@@ -264,7 +265,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	for {
 		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
-			fmt.Println("leader crashd")
+			fmt.Println("leader crashed++++")
 			commitChan <- output
 			return
 		}
@@ -480,6 +481,8 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	//4. Append any new entries not already in the log
 	// s.log = append(s.log, input.Entries...)
 	fmt.Println("match log in")
+	fmt.Println("match log sever ID")
+	fmt.Println(s.serverId)
 	output = s.matchTermAndEntry(input, output)
 
 	//5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
