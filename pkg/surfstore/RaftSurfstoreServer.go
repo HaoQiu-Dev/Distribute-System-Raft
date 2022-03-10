@@ -242,7 +242,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	}
 	fmt.Println("Be in infinity loop!")
 	//go routine continueously try to update  //whole log?
-	count := 0
+	// count := 0
 	for {
 		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
@@ -333,7 +333,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		// fmt.Println("try to append entry!")
-		fmt.Println(err)
+		fmt.Println(err) //"check point"
 		if err == nil {
 			if output.Success {
 				fmt.Println("try to append entry! Success!")
@@ -347,18 +347,11 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		if err != nil {
-			count++
-			if count > 1000 {
-				commitChan <- output
-				fmt.Println("dead error")
-				fmt.Println(err)
-				return
-			}
 			if strings.Contains(err.Error(), ERR_NOT_LEADER.Error()) || strings.Contains(err.Error(), ERR_SERVER_CRASHED.Error()) {
 				continue
 			} else {
 				commitChan <- output
-				fmt.Println("Append fails continue!")
+				fmt.Println("Append fails break!")
 				return
 			}
 		}
@@ -374,7 +367,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
 //of last new entry)
 
-func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *AppendEntryOutput) {
+func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *AppendEntryOutput) AppendEntryOutput {
 	fmt.Println("BEGIN match log")
 	i := input.PrevLogIndex
 	for i >= 0 {
@@ -395,7 +388,7 @@ func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *Appen
 		output.Term = s.term
 		output.Success = true
 		output.MatchedIndex = int64(len(s.log) - 1)
-		return
+		return *output
 	} else {
 		s.log = s.log[:0]
 		s.log = append(s.log, input.Entries...)
@@ -403,19 +396,21 @@ func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *Appen
 		output.Term = s.term
 		output.Success = true
 		output.MatchedIndex = int64(len(s.log) - 1)
-		return
+		return *output
 	}
 }
 
 func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error) {
 	// panic("todo")
 	fmt.Println("Begin Append Entries!")
+
 	output := &AppendEntryOutput{
 		ServerId:     s.serverId,
 		Success:      false,
 		Term:         s.term,
 		MatchedIndex: -1,
 	}
+
 	if input.Term > s.term {
 		fmt.Println("term ++")
 		s.isLeader = false
@@ -432,13 +427,11 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		fmt.Println("small term false")
 		return output, nil
 	}
-	if len(input.Entries) == 0 {
-		return output, nil
-	}
 
 	//2. Reply false if log doesn’t contain an entry at prevLogIndex whose term
 	//matches prevLogTerm (§5.3)
 	if input.PrevLogIndex >= 0 {
+		fmt.Println("doesn't contain!")
 		i := input.PrevLogIndex + 1
 		if int64(len(s.log)) == i {
 			if s.log[i-1].Term == input.Entries[i-1].Term {
@@ -458,14 +451,14 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	if s.isCrashed {
 		return output, ERR_SERVER_CRASHED
 	}
-
 	if len(s.log) > len(input.Entries) {
 		s.log = s.log[:len(input.Entries)]
 	}
-
 	//4. Append any new entries not already in the log
 	// s.log = append(s.log, input.Entries...)
-	s.matchTermAndEntry(input, output)
+	fmt.Println("match log in")
+	OPT := s.matchTermAndEntry(input, output)
+	output = &OPT
 
 	//5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
 	//of last new entry)
@@ -477,9 +470,8 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		entry := s.log[s.lastApplied]
 		s.metaStore.UpdateFile(ctx, entry.FileMetaData)
 	}
-
+	fmt.Println("put success! Now output!")
 	output.Success = true
-
 	return output, nil
 }
 
