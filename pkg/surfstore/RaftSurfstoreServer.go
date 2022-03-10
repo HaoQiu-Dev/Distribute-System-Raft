@@ -252,6 +252,7 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 				}
 			}
 		}
+
 		//reached all nodes already
 		if replyCount == len(s.ipList) {
 			ActivateChan <- false
@@ -458,6 +459,9 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
 	if s.isCrashed {
 		fmt.Println("This sever crashed,now return")
+		fmt.Println("My crash id")
+		fmt.Println(s.serverId)
+
 		return output, ERR_SERVER_CRASHED
 	}
 
