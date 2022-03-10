@@ -194,15 +194,17 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 	// currentTerm := -1
 
 	for {
-		if s.isCrashed {
-			return
-		}
-		if !s.isLeader {
-			return
-		}
 		//TODO handle crashed nodes NEED // don't forever loop (each node once)
 		commit := <-commitchan // go routine and get feedback
 		// currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
+		if s.isCrashed {
+			ActivateChan <- false
+			return
+		}
+		if !s.isLeader {
+			ActivateChan <- false
+			return
+		}
 		replyCount++
 		if commit != nil && commit.Success {
 			CommitNumberCount++
@@ -326,29 +328,25 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		defer cancel()
 		fmt.Println("replica append entry in")
 		fmt.Println(input.PrevLogIndex)
-		output, err := client.AppendEntries(ctx, input)
-		fmt.Println("replica append entry out")
 
 		if s.isCrashed {
-			output := &AppendEntryOutput{
-				ServerId:     s.serverId,
-				Success:      false,
-				Term:         s.term,
-				MatchedIndex: -1,
-			}
 			fmt.Println("leader crashd")
-			commitChan <- output
+			// commitChan <- output
 			return
 		}
 
 		if !s.isLeader {
-			output := &AppendEntryOutput{
-				ServerId:     s.serverId,
-				Success:      false,
-				Term:         s.term,
-				MatchedIndex: -1,
-			}
-			commitChan <- output
+			// commitChan <- output
+			return
+		}
+
+		output, err := client.AppendEntries(ctx, input)
+		fmt.Println("replica append entry out")
+
+		if s.isCrashed {
+			return
+		}
+		if !s.isLeader {
 			return
 		}
 
