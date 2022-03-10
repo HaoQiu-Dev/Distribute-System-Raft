@@ -309,7 +309,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		fmt.Println("print len(log)")
 		fmt.Println(len(s.log))
 
-		if entryIdx == 0 {
+		if entryIdx <= 0 {
 			if len(s.log) == 0 {
 				input = &AppendEntryInput{
 					Term:         s.term,
