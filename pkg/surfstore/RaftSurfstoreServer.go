@@ -244,11 +244,14 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 					return
 				} else if s.term > s.log[targetIdx].Term {
 					// if len(s.log)-1 > int(targetIdx) {
-					fmt.Println("replcate greater > 1/2! commit!")
+					fmt.Println("replcate greater > 1/2! commit! over term")
 					// if int(targetIdx) < len(s.log)-1 {
 					// 	s.commitIndex = targetIdx
 					// }
-					s.commitIndex = int64(len(s.log) - 2)
+					if s.commitIndex < int64(len(s.log)-2) {
+						s.commitIndex = int64(len(s.log) - 2)
+					}
+
 					ActivateChan <- true
 					fmt.Println("finish attempt fcommit!")
 					return
@@ -369,7 +372,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		fmt.Println("replica append entry in")
-		fmt.Println(input.PrevLogIndex)
+		fmt.Println(input.LeaderCommit)
 
 		if s.isCrashed {
 			fmt.Println("leader crashd")
@@ -381,6 +384,10 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 			return
 		}
 
+		fmt.Println("input.LeaderCommit")
+		fmt.Println(input.LeaderCommit)
+		fmt.Println("len(input.Entries)")
+		fmt.Println(len(input.Entries))
 		output, err := client.AppendEntries(ctx, input)
 		fmt.Println("replica append entry out")
 		fmt.Println("s.isCrashed=======")
