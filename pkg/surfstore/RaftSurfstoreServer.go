@@ -238,6 +238,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	}
 
 	if s.isCrashed {
+		fmt.Print("leader is crash**")
 		commitChan <- output
 		return
 	}
