@@ -246,7 +246,7 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 					// }
 					s.commitIndex = int64(len(s.log) - 2)
 					ActivateChan <- true
-					fmt.Println("finish attempt commit!")
+					fmt.Println("finish attempt fcommit!")
 					return
 					// }
 				}
@@ -585,13 +585,15 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		return &Success{Flag: true}, nil
 	} else {
 		fmt.Println("send beats false, but half reply!")
-		return &Success{Flag: false}, nil
+		return &Success{Flag: true}, nil
 	}
 
 }
 
 func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	fmt.Println("Begin server crash!")
+	fmt.Println("to crash id")
+	fmt.Println(s.serverId)
 	s.isCrashedMutex.Lock()
 	s.isCrashed = true
 	s.isCrashedMutex.Unlock()
