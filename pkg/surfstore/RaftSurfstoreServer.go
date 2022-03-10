@@ -181,6 +181,7 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 	// ActivateChan := *ACTchan
 
 	if s.isCrashed {
+		fmt.Println("leader crashed attemp")
 		ActivateChan <- false
 		return
 	}
@@ -210,6 +211,7 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 		commit := <-commitchan // go routine and get feedback
 		// currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
 		if s.isCrashed {
+			fmt.Println("leader crashed attemp??")
 			ActivateChan <- false
 			return
 		}
@@ -483,6 +485,8 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	fmt.Println("match log in")
 	fmt.Println("match log sever ID")
 	fmt.Println(s.serverId)
+	fmt.Println("is this server crashed?")
+	fmt.Println(s.isCrashed)
 	output = s.matchTermAndEntry(input, output)
 
 	//5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
@@ -506,9 +510,6 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 
 	// s.isLeaderMutex.Lock()
 	fmt.Println("Begin set leader")
-	if s.isCrashed {
-		return &Success{Flag: false}, ERR_SERVER_CRASHED
-	}
 	s.term++
 	s.isLeader = true
 	// s.isLeaderMutex.Unlock()
@@ -523,6 +524,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	fmt.Println("begin send heart beat")
 	// check leader
 	if s.isCrashed {
+		fmt.Println("leader crash heart")
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
 	if !s.isLeader {
