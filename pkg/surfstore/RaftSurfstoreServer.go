@@ -179,9 +179,7 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 	fmt.Println("Begin attempt cmmit!")
 	// ActivateChan := *ACTchan
 	targetIdx := s.commitIndex + 1
-	if int(targetIdx) > len(s.log)-1 {
-		targetIdx = s.commitIndex
-	}
+
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
 
 	for idx, _ := range s.ipList {
@@ -313,6 +311,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				// 		LeaderCommit: s.commitIndex}
 			}
 		}
+
 		addr := s.ipList[serverIdx]
 		// fmt.Println("Dial to follower, need replicentry")
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
