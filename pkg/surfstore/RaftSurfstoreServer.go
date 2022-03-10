@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	reflect "reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -246,6 +245,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	fmt.Println("Be in infinity loop!")
 	//go routine continueously try to update  //whole log?
 	// count := 0
+
 	for {
 		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
@@ -366,13 +366,14 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		if err != nil {
-			if strings.Contains(err.Error(), ERR_NOT_LEADER.Error()) || strings.Contains(err.Error(), ERR_SERVER_CRASHED.Error()) {
-				continue
-			} else {
-				commitChan <- output
-				fmt.Println("Append fails break!")
-				return
-			}
+			// if strings.Contains(err.Error(), ERR_NOT_LEADER.Error()) || strings.Contains(err.Error(), ERR_SERVER_CRASHED.Error()) || strings.Contains(err.Error(), "DeadlineExceeded desc = context deadline exceeded") {
+			// 	continue
+			// } else {
+			// 	commitChan <- output
+			// 	fmt.Println("Append fails break!")
+			// 	return
+			// }
+			continue
 		}
 	}
 }
