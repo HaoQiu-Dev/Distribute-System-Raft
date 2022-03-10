@@ -261,6 +261,9 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		//TODO handle crashed / non success cases ...?should return what?
 		//modify input
 		var input *AppendEntryInput
+		fmt.Println("make inout entry")
+		fmt.Println("print entryIdx")
+		fmt.Println(entryIdx)
 		if entryIdx == 0 {
 			if len(s.log) == 0 {
 				input = &AppendEntryInput{
@@ -304,6 +307,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		fmt.Println("replica append entry in")
+		fmt.Println(input.PrevLogIndex)
 		output, err := client.AppendEntries(ctx, input)
 		fmt.Println("replica append entry out")
 
