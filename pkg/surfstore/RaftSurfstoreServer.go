@@ -335,6 +335,8 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		output, err := client.AppendEntries(ctx, input)
 		fmt.Println("replica append entry out")
+		print("s.isCrashed=======")
+		print(s.isCrashed)
 
 		if s.isCrashed {
 			return
