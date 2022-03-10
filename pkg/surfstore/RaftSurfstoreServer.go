@@ -45,56 +45,56 @@ type RaftSurfstore struct {
 	UnimplementedRaftSurfstoreServer
 }
 
-func (s *RaftSurfstore) checkAllCrash(support *chan bool) {
-	fmt.Println("Begin check crash!")
-	SOP := *support
-	crashChan := make(chan bool)
-	for idx, _ := range s.ipList {
-		//skip severself
-		if int64(idx) == s.serverId {
-			continue
-		}
-		go s.chechkFollowerCrash(int64(idx), &crashChan)
-	}
+// func (s *RaftSurfstore) checkAllCrash(support *chan bool) {
+// 	fmt.Println("Begin check crash!")
+// 	SOP := *support
+// 	crashChan := make(chan bool)
+// 	for idx, _ := range s.ipList {
+// 		//skip severself
+// 		if int64(idx) == s.serverId {
+// 			continue
+// 		}
+// 		go s.chechkFollowerCrash(int64(idx), &crashChan)
+// 	}
 
-	crashRecoverCount := 1
-	for {
-		<-crashChan
-		crashRecoverCount++
+// 	crashRecoverCount := 1
+// 	for {
+// 		<-crashChan
+// 		crashRecoverCount++
 
-		if crashRecoverCount > len(s.ipList)/2 {
-			SOP <- true
-			return //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
-		}
-		//reached all nodes already
-		if crashRecoverCount == len(s.ipList) {
-			SOP <- false
-			return
-		}
-	}
-}
+// 		if crashRecoverCount > len(s.ipList)/2 {
+// 			SOP <- true
+// 			return //successfully replica more than half; committed := make(chan bool); s.pendingCommits = append(s.pendingCommits, committed)
+// 		}
+// 		//reached all nodes already
+// 		if crashRecoverCount == len(s.ipList) {
+// 			SOP <- false
+// 			return
+// 		}
+// 	}
+// }
 
-func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan *chan bool) {
-	fmt.Println("Begin check follower!")
-	for {
-		CRSchan := *crashChan
-		addr := s.ipList[idx]
-		conn, err := grpc.Dial(addr, grpc.WithInsecure())
-		if err != nil {
-			continue
-		}
-		client := NewRaftSurfstoreClient(conn)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
+// func (s *RaftSurfstore) chechkFollowerCrash(idx int64, crashChan *chan bool) {
+// 	fmt.Println("Begin check follower!")
+// 	for {
+// 		CRSchan := *crashChan
+// 		addr := s.ipList[idx]
+// 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+// 		if err != nil {
+// 			continue
+// 		}
+// 		client := NewRaftSurfstoreClient(conn)
+// 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+// 		defer cancel()
 
-		crashInfor, _ := client.IsCrashed(ctx, &emptypb.Empty{})
-		if !crashInfor.IsCrashed {
-			CRSchan <- true
-			return
-		}
-	}
+// 		crashInfor, _ := client.IsCrashed(ctx, &emptypb.Empty{})
+// 		if !crashInfor.IsCrashed {
+// 			CRSchan <- true
+// 			return
+// 		}
+// 	}
 
-}
+// }
 
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	//panic("todo")
@@ -107,10 +107,10 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 		return nil, ERR_NOT_LEADER
 	}
 	fmt.Println("client call success")
-	support := make(chan bool)
-	go s.checkAllCrash(&support)
-	SOP := <-support
-	if SOP {
+	ActivateChan := make(chan bool)
+	go s.attemptCommit(&ActivateChan)
+	success := <-ActivateChan
+	if success {
 		return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
 	}
 	return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
@@ -127,10 +127,11 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 		return nil, ERR_NOT_LEADER
 	}
 	fmt.Println("client call success")
-	support := make(chan bool)
-	go s.checkAllCrash(&support)
-	SOP := <-support
-	if SOP {
+
+	ActivateChan := make(chan bool)
+	go s.attemptCommit(&ActivateChan)
+	success := <-ActivateChan
+	if success {
 		return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
 	}
 	return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
@@ -187,8 +188,8 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 		go s.replicEntry(int64(idx), targetIdx, commitchan) // 1-1
 	}
 
-	logReplicaCount := 1
-	logReplyCount := 1
+	replyCount := 1
+	CommitNumberCount := 1
 	currentTerm := -1
 
 	for {
@@ -201,11 +202,11 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 		//TODO handle crashed nodes NEED // don't forever loop (each node once)
 		commit := <-commitchan // go routine and get feedback
 		currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
-		logReplyCount++
+		replyCount++
 		if commit.Success {
-			logReplicaCount++
+			CommitNumberCount++
 		}
-		if logReplicaCount > len(s.ipList)/2 && int64(currentTerm) <= s.log[targetIdx].Term {
+		if CommitNumberCount > len(s.ipList)/2 && int64(currentTerm) <= s.log[targetIdx].Term {
 			fmt.Println("replcate greater > 1/2! commit!")
 			s.commitIndex = targetIdx
 			ActivateChan <- true
@@ -213,7 +214,7 @@ func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
 			return
 		}
 		//reached all nodes already
-		if logReplicaCount == len(s.ipList) {
+		if replyCount == len(s.ipList) {
 			ActivateChan <- false
 			return
 		}
@@ -265,11 +266,9 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		client := NewRaftSurfstoreClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-
 		// TODO create correct AppendEntryInput from s. . etc
 		//make the rest prelog and preterm here correctly! to sendheartbeat
 		//TODO handle crashed / non success cases ...?should return what?
-
 		//modify input
 		var input *AppendEntryInput
 		if entryIdx == 0 {
@@ -338,7 +337,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		if err != nil {
-
 			count++
 			if count > 1000 {
 				commitChan <- output
@@ -346,7 +344,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				fmt.Println(err)
 				return
 			}
-
 			if strings.Contains(err.Error(), ERR_NOT_LEADER.Error()) || strings.Contains(err.Error(), ERR_SERVER_CRASHED.Error()) {
 				continue
 			} else {
@@ -354,7 +351,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				fmt.Println("Append fails continue!")
 				return
 			}
-
 		}
 		// for err != nil {
 		// 	continue
@@ -484,14 +480,14 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// panic("todo")
 
-	s.isLeaderMutex.Lock()
+	// s.isLeaderMutex.Lock()
 	fmt.Println("Begin set leader")
 	if s.isCrashed {
 		return &Success{Flag: false}, ERR_SERVER_CRASHED
 	}
 	s.term++
 	s.isLeader = true
-	s.isLeaderMutex.Unlock()
+	// s.isLeaderMutex.Unlock()
 	return &Success{Flag: true}, nil
 }
 
