@@ -385,9 +385,8 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		fmt.Println(s.serverId)
 
 		if s.isCrashed {
-			return
-		}
-		if !s.isLeader {
+			fmt.Println("leader crashd")
+			commitChan <- output
 			return
 		}
 
@@ -473,22 +472,28 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
 		return output, ERR_SERVER_CRASHED
 	}
+	// !!!!!!!!!!!!!!!!!!!!!!!!
+	// if len(input.Entries) == 0 {
+	// 	//just try to sync the state
+	// 	output.Success = true
+	// 	return output, nil
+	// }
 
-	if len(input.Entries) == 0 {
-		//just try to sync the state
+	//1. Reply false if term < currentTerm (§5.1)
+	fmt.Println("input Term")
+	fmt.Println(input.Term)
+	fmt.Println("My term")
+	fmt.Println(s.term)
+
+	if input.Term < s.term {
+		// output.Term = input.Term
+		fmt.Println("small term false")
 		output.Success = false
 		return output, nil
 	}
 
-	//1. Reply false if term < currentTerm (§5.1)
-	if input.Term < s.term {
-		// output.Term = input.Term
-		fmt.Println("small term false")
-		return output, nil
-	}
-
 	//2. Reply false if log doesn’t contain an entry at prevLogIndex whose term
-	//matches prevLogTerm (§5.3)
+	//matches prevLogTerm (§5.3) ~~~
 	if input.PrevLogIndex >= 0 {
 		fmt.Println("doesn't contain!")
 		i := input.PrevLogIndex + 1
