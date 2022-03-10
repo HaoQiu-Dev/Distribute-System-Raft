@@ -288,12 +288,21 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 					LeaderCommit: s.commitIndex}
 			}
 		} else if entryIdx > 0 {
-			input = &AppendEntryInput{
-				Term:         s.term,
-				PrevLogIndex: entryIdx - 1,
-				PrevLogTerm:  s.log[entryIdx-1].Term,
-				Entries:      s.log[:entryIdx+1], //index to position
-				LeaderCommit: s.commitIndex}
+			if len(s.log) == int(entryIdx) {
+				input = &AppendEntryInput{
+					Term:         s.term,
+					PrevLogIndex: entryIdx - 1,
+					PrevLogTerm:  s.log[entryIdx-1].Term,
+					Entries:      s.log[:entryIdx], //index to position
+					LeaderCommit: s.commitIndex}
+			} else if len(s.log) > int(entryIdx) {
+				input = &AppendEntryInput{
+					Term:         s.term,
+					PrevLogIndex: entryIdx - 1,
+					PrevLogTerm:  s.log[entryIdx-1].Term,
+					Entries:      s.log[:entryIdx+1], //index to position
+					LeaderCommit: s.commitIndex}
+			}
 		}
 
 		output, err := client.AppendEntries(ctx, input)
@@ -352,9 +361,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 				return
 			}
 		}
-		// for err != nil {
-		// 	continue
-		// }
 	}
 }
 
