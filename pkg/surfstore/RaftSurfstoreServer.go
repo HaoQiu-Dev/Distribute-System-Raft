@@ -179,6 +179,9 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 	fmt.Println("Begin attempt cmmit!")
 	// ActivateChan := *ACTchan
 	targetIdx := s.commitIndex + 1
+	if int(targetIdx) > len(s.log)-1 {
+		targetIdx = s.commitIndex
+	}
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
 
 	for idx, _ := range s.ipList {
@@ -209,7 +212,9 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 		// && int64(currentTerm) <= s.log[targetIdx].Term
 		if CommitNumberCount > len(s.ipList)/2 {
 			fmt.Println("replcate greater > 1/2! commit!")
-			s.commitIndex = targetIdx
+			if int(targetIdx) <= len(s.log)-1 {
+				s.commitIndex = targetIdx
+			}
 			ActivateChan <- true
 			fmt.Println("finish attempt commit!")
 			return
