@@ -191,7 +191,7 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 
 	replyCount := 1
 	CommitNumberCount := 1
-	currentTerm := -1
+	// currentTerm := -1
 
 	for {
 		if s.isCrashed {
@@ -202,9 +202,9 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 		}
 		//TODO handle crashed nodes NEED // don't forever loop (each node once)
 		commit := <-commitchan // go routine and get feedback
-		currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
+		// currentTerm = int(math.Max(float64(currentTerm), float64(commit.Term)))
 		replyCount++
-		if commit.Success {
+		if commit != nil && commit.Success {
 			CommitNumberCount++
 		}
 		// && int64(currentTerm) <= s.log[targetIdx].Term
@@ -267,6 +267,8 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		fmt.Println("make inout entry")
 		fmt.Println("print entryIdx")
 		fmt.Println(entryIdx)
+		fmt.Println("print commited idx")
+		fmt.Println(s.commitIndex)
 		fmt.Println("print len(log)")
 		fmt.Println(len(s.log))
 
