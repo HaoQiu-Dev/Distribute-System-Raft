@@ -192,6 +192,9 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 	}
 
 	targetIdx := s.commitIndex + 1
+	if int(targetIdx) >= (len(s.log) - 1) {
+		targetIdx = int64((len(s.log) - 1))
+	}
 
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
 
@@ -224,6 +227,7 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 			CommitNumberCount++
 		}
 		// && int64(currentTerm) <= s.log[targetIdx].Term
+
 		if CommitNumberCount > len(s.ipList)/2 {
 			if len(s.log) > 0 {
 				if s.term == s.log[targetIdx].Term {
@@ -235,15 +239,16 @@ func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 					fmt.Println("finish attempt commit!")
 					return
 				} else if s.term > s.log[targetIdx].Term {
-					if len(s.log) > int(targetIdx) {
-						fmt.Println("replcate greater > 1/2! commit!")
-						if int(targetIdx) < len(s.log)-1 {
-							s.commitIndex = targetIdx
-						}
-						ActivateChan <- true
-						fmt.Println("finish attempt commit!")
-						return
-					}
+					// if len(s.log)-1 > int(targetIdx) {
+					fmt.Println("replcate greater > 1/2! commit!")
+					// if int(targetIdx) < len(s.log)-1 {
+					// 	s.commitIndex = targetIdx
+					// }
+					s.commitIndex = int64(len(s.log) - 2)
+					ActivateChan <- true
+					fmt.Println("finish attempt commit!")
+					return
+					// }
 				}
 			}
 		}
