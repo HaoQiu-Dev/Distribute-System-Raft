@@ -240,8 +240,8 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	}
 	fmt.Println("Be in infinity loop!")
 	//go routine continueously try to update  //whole log?
+	count := 0
 	for {
-
 		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
 			// fmt.Println("leader crashd")
@@ -263,12 +263,11 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 			continue
 		}
 		client := NewRaftSurfstoreClient(conn)
-
-		// TODO create correct AppendEntryInput from s. . etc
-		//make the rest prelog and preterm here correctly! to sendheartbeat
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
+		// TODO create correct AppendEntryInput from s. . etc
+		//make the rest prelog and preterm here correctly! to sendheartbeat
 		//TODO handle crashed / non success cases ...?should return what?
 
 		//modify input
@@ -326,7 +325,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		// fmt.Println("try to append entry!")
 		fmt.Println(err)
-
 		if err == nil {
 			if output.Success {
 				fmt.Println("try to append entry! Success!")
@@ -340,12 +338,23 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 		}
 
 		if err != nil {
+
+			count++
+			if count > 1000 {
+				commitChan <- output
+				fmt.Println("dead error")
+				fmt.Println(err)
+				return
+			}
+
 			if strings.Contains(err.Error(), ERR_NOT_LEADER.Error()) || strings.Contains(err.Error(), ERR_SERVER_CRASHED.Error()) {
 				continue
 			} else {
+				commitChan <- output
 				fmt.Println("Append fails continue!")
 				return
 			}
+
 		}
 		// for err != nil {
 		// 	continue
