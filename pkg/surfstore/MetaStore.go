@@ -30,6 +30,7 @@ func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) 
 	if metaFMD, ok := m.FileMetaMap[fileMetaData.Filename]; !ok {
 		if fileMetaData.Version == 1 {
 			m.FileMetaMap[fileMetaData.Filename] = fileMetaData
+			return &Version{Version: fileMetaData.Version}, nil
 		} else {
 			return &Version{Version: -1}, nil
 		}
