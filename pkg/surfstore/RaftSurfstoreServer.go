@@ -383,17 +383,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 func (s *RaftSurfstore) matchTermAndEntry(input *AppendEntryInput, output *AppendEntryOutput) *AppendEntryOutput {
 	fmt.Println("BEGIN match log")
 	i := input.PrevLogIndex
-	for i >= 0 {
-		if s.log[i].Term == input.Entries[i].Term && reflect.DeepEqual(s.log[i].FileMetaData, input.Entries[i].FileMetaData) {
-			output.ServerId = s.serverId
-			output.Term = s.term
-			output.Success = true
-			output.MatchedIndex = i
-			break
-		} else {
-			i--
-		}
-	}
 	if i < 0 {
 		s.log = s.log[:0]
 		s.log = append(s.log, input.Entries...)
