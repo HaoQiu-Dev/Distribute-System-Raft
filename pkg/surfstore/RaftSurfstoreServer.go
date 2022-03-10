@@ -542,7 +542,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log)-1)))
 
 	//
-	for s.lastApplied < s.commitIndex {
+	for s.lastApplied <= s.commitIndex {
 		s.lastApplied++
 		entry := s.log[s.lastApplied]
 		s.metaStore.UpdateFile(ctx, entry.FileMetaData)
@@ -607,6 +607,8 @@ func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, 
 
 func (s *RaftSurfstore) Restore(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	fmt.Println("Begin server restore!")
+	fmt.Println("Restore id")
+	fmt.Println(s.serverId)
 	s.isCrashedMutex.Lock()
 	s.isCrashed = false
 	s.notCrashedCond.Broadcast()
