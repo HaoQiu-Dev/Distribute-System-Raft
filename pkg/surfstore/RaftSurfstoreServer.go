@@ -108,7 +108,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 	}
 	fmt.Println("client call success")
 	ActivateChan := make(chan bool)
-	go s.attemptCommit(&ActivateChan)
+	go s.attemptCommit(ActivateChan)
 	success := <-ActivateChan
 	if success {
 		return &FileInfoMap{FileInfoMap: s.metaStore.FileMetaMap}, nil
@@ -129,7 +129,7 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
 	fmt.Println("client call success")
 
 	ActivateChan := make(chan bool)
-	go s.attemptCommit(&ActivateChan)
+	go s.attemptCommit(ActivateChan)
 	success := <-ActivateChan
 	if success {
 		return &BlockStoreAddr{Addr: s.metaStore.BlockStoreAddr}, nil
@@ -158,7 +158,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 	s.log = append(s.log, &op)
 	ActivateChan := make(chan bool)
-	go s.attemptCommit(&ActivateChan) //attempt relicate to other severs only once
+	go s.attemptCommit(ActivateChan) //attempt relicate to other severs only once
 
 	// success := <-committed //commite
 	success := <-ActivateChan
@@ -175,9 +175,9 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 }
 
 //attempt relicate to other severs //s is the leader s.attempt -> replicate
-func (s *RaftSurfstore) attemptCommit(ACTchan *chan bool) {
+func (s *RaftSurfstore) attemptCommit(ActivateChan chan bool) {
 	fmt.Println("Begin attempt cmmit!")
-	ActivateChan := *ACTchan
+	// ActivateChan := *ACTchan
 	targetIdx := s.commitIndex + 1
 	commitchan := make(chan *AppendEntryOutput, len(s.ipList))
 
@@ -256,17 +256,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 			return
 		}
 
-		addr := s.ipList[serverIdx]
-		// fmt.Println("Dial to follower, need replicentry")
-		conn, err := grpc.Dial(addr, grpc.WithInsecure())
-		if err != nil {
-			// commitChan <- output
-			// return
-			continue
-		}
-		client := NewRaftSurfstoreClient(conn)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
 		// TODO create correct AppendEntryInput from s. . etc
 		//make the rest prelog and preterm here correctly! to sendheartbeat
 		//TODO handle crashed / non success cases ...?should return what?
@@ -305,7 +294,16 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 					LeaderCommit: s.commitIndex}
 			}
 		}
-
+		addr := s.ipList[serverIdx]
+		// fmt.Println("Dial to follower, need replicentry")
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			continue
+		}
+		client := NewRaftSurfstoreClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		fmt.Println("replica append entry in")
 		output, err := client.AppendEntries(ctx, input)
 		fmt.Println("replica append entry out")
 
@@ -505,7 +503,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	}
 
 	ActivateChan := make(chan bool)
-	go s.attemptCommit(&ActivateChan) //attempt relicate to other severs only once
+	go s.attemptCommit(ActivateChan) //attempt relicate to other severs only once
 
 	// success := <-committed //commite
 	success := <-ActivateChan
