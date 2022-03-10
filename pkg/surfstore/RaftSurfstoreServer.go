@@ -252,7 +252,7 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 	for {
 		fmt.Println("try to replicate,loop")
 		if s.isCrashed {
-			// fmt.Println("leader crashd")
+			fmt.Println("leader crashd")
 			commitChan <- output
 			return
 		}
@@ -308,12 +308,6 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 					LeaderCommit: s.commitIndex}
 			} else if len(s.log) < int(entryIdx) {
 				fmt.Println("Queer entry")
-				// 	input = &AppendEntryInput{
-				// 		Term:         s.term,
-				// 		PrevLogIndex: entryIdx - 1,
-				// 		PrevLogTerm:  s.log[entryIdx-1].Term,
-				// 		Entries:      s.log[:entryIdx-1], //index to position
-				// 		LeaderCommit: s.commitIndex}
 			}
 		}
 
@@ -331,12 +325,11 @@ func (s *RaftSurfstore) replicEntry(serverIdx, entryIdx int64, commitChan chan *
 
 		if s.isCrashed {
 			fmt.Println("leader crashd")
-			// commitChan <- output
+			commitChan <- output
 			return
 		}
-
 		if !s.isLeader {
-			// commitChan <- output
+			commitChan <- output
 			return
 		}
 
