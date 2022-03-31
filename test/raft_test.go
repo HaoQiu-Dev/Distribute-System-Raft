@@ -3,8 +3,10 @@ package SurfTest
 import (
 	context "context"
 	"cse224/proj5/pkg/surfstore"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	"log"
 	"testing"
+
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestRaftSetLeader(t *testing.T) {
@@ -19,12 +21,18 @@ func TestRaftSetLeader(t *testing.T) {
 
 	// heartbeat
 	for _, server := range test.Clients {
+		log.Println("setLeader NOW!!!!")
 		server.SendHeartbeat(test.Context, &emptypb.Empty{})
+		log.Println("all be 1 !!!")
 	}
 
 	for idx, server := range test.Clients {
 		// all should have the leaders term
+		log.Println("getinternal NOW!!!!")
 		state, _ := server.GetInternalState(test.Context, &emptypb.Empty{})
+		log.Println("internalget NOW!!!!")
+		log.Println(&server)
+		log.Println(state)
 		if state.Term != int64(1) {
 			t.Logf("Server %d should be in term %d", idx, 1)
 			t.Fail()
@@ -50,6 +58,7 @@ func TestRaftSetLeader(t *testing.T) {
 	// heartbeat
 	for _, server := range test.Clients {
 		server.SendHeartbeat(test.Context, &emptypb.Empty{})
+		log.Println("all be 2 !!!")
 	}
 
 	for idx, server := range test.Clients {
@@ -69,6 +78,7 @@ func TestRaftSetLeader(t *testing.T) {
 			// server should not be the leader
 			if state.IsLeader {
 				t.Logf("Server %d should not be the leader", idx)
+				t.Logf("Why u still leader %d", idx)
 				t.Fail()
 			}
 		}
@@ -95,6 +105,7 @@ func TestRaftFollowersGetUpdates(t *testing.T) {
 
 	goldenMeta := surfstore.NewMetaStore("")
 	goldenMeta.UpdateFile(test.Context, filemeta1)
+	log.Println("update success")
 	goldenLog := make([]*surfstore.UpdateOperation, 0)
 	goldenLog = append(goldenLog, &surfstore.UpdateOperation{
 		Term:         1,
